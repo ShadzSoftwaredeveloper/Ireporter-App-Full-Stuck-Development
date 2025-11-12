@@ -6,8 +6,7 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../components/ui/card';
 import { Alert, AlertDescription } from '../components/ui/alert';
-import { AlertCircle, Mail, Lock, User, Shield, ArrowLeft } from 'lucide-react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { AlertCircle, Mail, Lock, User, ArrowLeft } from 'lucide-react';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '../components/ui/input-otp';
 import { toast } from 'sonner';
 import authImage from 'figma:asset/25b9347e01175272ae75dfe2e161b71b53ca49ac.png';
@@ -16,17 +15,15 @@ export const SignUp: React.FC = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState<'user' | 'admin'>('user');
+  const [role] = useState<'user'>('user'); // 👈 default user role only
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showOtpStep, setShowOtpStep] = useState(false);
   const [otp, setOtp] = useState('');
-  const [generatedOtp, setGeneratedOtp] = useState('');
   const [resendTimer, setResendTimer] = useState(0);
-  const { signUp } = useAuth();
+  const { signUp, verifySignUpOtp, user } = useAuth();
   const navigate = useNavigate();
 
-  // Timer for resend button
   useEffect(() => {
     if (resendTimer > 0) {
       const timer = setTimeout(() => setResendTimer(resendTimer - 1), 1000);
@@ -34,12 +31,7 @@ export const SignUp: React.FC = () => {
     }
   }, [resendTimer]);
 
-  const generateOtp = () => {
-    // Generate a random 6-digit OTP
-    return Math.floor(100000 + Math.random() * 900000).toString();
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
@@ -51,20 +43,12 @@ export const SignUp: React.FC = () => {
     setLoading(true);
 
     try {
-      // Simulate sending OTP
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const newOtp = generateOtp();
-      setGeneratedOtp(newOtp);
-      
-      // In a real app, this would send to email
-      console.log('OTP sent to', email, ':', newOtp);
-      toast.success(`OTP sent to ${email}`);
-      
+      const result = await signUp(email, password, name, role);
+      toast.success(result.message);
       setShowOtpStep(true);
-      setResendTimer(60); // 60 seconds cooldown
+      setResendTimer(60);
     } catch (err) {
-      setError('Failed to send OTP. Please try again.');
+      setError(err instanceof Error ? err.message : 'Failed to send OTP');
     } finally {
       setLoading(false);
     }
@@ -75,18 +59,12 @@ export const SignUp: React.FC = () => {
 
     setLoading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const newOtp = generateOtp();
-      setGeneratedOtp(newOtp);
-      
-      console.log('OTP resent to', email, ':', newOtp);
-      toast.success('OTP resent successfully');
-      
+      const result = await signUp(email, password, name, role);
+      toast.success('New verification code sent!');
       setResendTimer(60);
-      setOtp(''); // Clear previous OTP input
+      setOtp('');
     } catch (err) {
-      toast.error('Failed to resend OTP');
+      toast.error(err instanceof Error ? err.message : 'Failed to resend OTP');
     } finally {
       setLoading(false);
     }
@@ -98,22 +76,16 @@ export const SignUp: React.FC = () => {
       return;
     }
 
-    if (otp !== generatedOtp) {
-      setError('Invalid OTP. Please try again.');
-      setOtp('');
-      return;
-    }
-
     setLoading(true);
     setError('');
 
     try {
-      // OTP verified, now create the account
-      await signUp(email, password, name, role);
+      await verifySignUpOtp(email, otp);
       toast.success('Account created successfully!');
-      navigate('/incidents');
+      navigate('/incidents'); // 👈 always goes to user page
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create account');
+      setError(err instanceof Error ? err.message : 'Failed to verify OTP');
+      setOtp('');
     } finally {
       setLoading(false);
     }
@@ -122,34 +94,19 @@ export const SignUp: React.FC = () => {
   const handleOtpChange = (value: string) => {
     setOtp(value);
     setError('');
-    
-    // Auto-verify when 6 digits are entered
     if (value.length === 6) {
-      setTimeout(() => {
-        if (value === generatedOtp) {
-          handleVerifyOtp();
-        } else {
-          setError('Invalid OTP. Please try again.');
-          setTimeout(() => setOtp(''), 500);
-        }
-      }, 300);
+      handleVerifyOtp();
     }
   };
 
   if (showOtpStep) {
     return (
       <div className="min-h-screen relative flex items-center justify-center px-4 py-8">
-        {/* Full Background Image */}
         <div className="absolute inset-0">
-          <img 
-            src={authImage} 
-            alt="Authentication Background" 
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-black/50" /> {/* Dark overlay */}
+          <img src={authImage} alt="Authentication Background" className="w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-black/50" />
         </div>
 
-        {/* Back to Landing Button */}
         <Link 
           to="/" 
           className="absolute top-6 left-6 z-20 flex items-center gap-2 text-white hover:text-white/80 transition-colors"
@@ -158,107 +115,88 @@ export const SignUp: React.FC = () => {
           <span>Back to Home</span>
         </Link>
 
-        {/* OTP Form as Transparent Popup */}
         <Card className="w-full max-w-md relative z-10 shadow-2xl bg-white/10 backdrop-blur-lg border-white/20">
-            <CardHeader className="space-y-1">
-              <div className="flex items-center justify-center mb-4">
-                <div className="w-16 h-16 bg-red-500/20 backdrop-blur-sm rounded-full flex items-center justify-center border border-red-300/30">
-                  <Mail className="w-8 h-8 text-white" />
-                </div>
+          <CardHeader className="space-y-1">
+            <div className="flex items-center justify-center mb-4">
+              <div className="w-16 h-16 bg-red-500/20 backdrop-blur-sm rounded-full flex items-center justify-center border border-red-300/30">
+                <Mail className="w-8 h-8 text-white" />
               </div>
-              <CardTitle className="text-center text-white">Verify Your Email</CardTitle>
-              <CardDescription className="text-center text-white/80">
-                We've sent a 6-digit verification code to<br />
-                <span className="font-medium text-white">{email}</span>
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {error && (
-                <Alert variant="destructive" className="bg-red-500/20 border-red-300/30 backdrop-blur-sm">
-                  <AlertDescription className="text-white">{error}</AlertDescription>
-                </Alert>
-              )}
+            </div>
+            <CardTitle className="text-center text-white">Verify Your Email</CardTitle>
+            <CardDescription className="text-center text-white/80">
+              We've sent a 6-digit verification code to<br />
+              <span className="font-medium text-white">{email}</span>
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {error && (
+              <Alert variant="destructive" className="bg-red-500/20 border-red-300/30 backdrop-blur-sm">
+                <AlertDescription className="text-white">{error}</AlertDescription>
+              </Alert>
+            )}
 
-              <div className="space-y-4">
-                <Label htmlFor="otp" className="text-center block text-white">
-                  Enter Verification Code
-                </Label>
-                <div className="flex justify-center">
-                  <InputOTP
-                    maxLength={6}
-                    value={otp}
-                    onChange={handleOtpChange}
-                    disabled={loading}
-                  >
-                    <InputOTPGroup>
-                      <InputOTPSlot index={0} className="bg-white/10 border-white/30 text-white" />
-                      <InputOTPSlot index={1} className="bg-white/10 border-white/30 text-white" />
-                      <InputOTPSlot index={2} className="bg-white/10 border-white/30 text-white" />
-                      <InputOTPSlot index={3} className="bg-white/10 border-white/30 text-white" />
-                      <InputOTPSlot index={4} className="bg-white/10 border-white/30 text-white" />
-                      <InputOTPSlot index={5} className="bg-white/10 border-white/30 text-white" />
-                    </InputOTPGroup>
-                  </InputOTP>
-                </div>
-                <p className="text-xs text-center text-white/70">
-                  Check your email for the verification code
-                </p>
+            <div className="space-y-4">
+              <Label htmlFor="otp" className="text-center block text-white">
+                Enter Verification Code
+              </Label>
+              <div className="flex justify-center">
+                <InputOTP maxLength={6} value={otp} onChange={handleOtpChange} disabled={loading}>
+                  <InputOTPGroup>
+                    {Array.from({ length: 6 }).map((_, i) => (
+                      <InputOTPSlot key={i} index={i} className="bg-white/10 border-white/30 text-white" />
+                    ))}
+                  </InputOTPGroup>
+                </InputOTP>
               </div>
+              <p className="text-xs text-center text-white/70">
+                Check your email for the verification code
+              </p>
+            </div>
 
+            <Button
+              onClick={handleVerifyOtp}
+              className="w-full bg-red-600 hover:bg-red-700 text-white"
+              disabled={loading || otp.length !== 6}
+            >
+              {loading ? 'Verifying...' : 'Verify & Create Account'}
+            </Button>
+
+            <div className="text-center space-y-2">
+              <p className="text-sm text-white/80">Didn't receive the code?</p>
               <Button
-                onClick={handleVerifyOtp}
-                className="w-full bg-red-600 hover:bg-red-700 text-white"
-                disabled={loading || otp.length !== 6}
+                variant="ghost"
+                onClick={handleResendOtp}
+                disabled={resendTimer > 0 || loading}
+                className="text-white hover:text-white/80 hover:bg-white/10"
               >
-                {loading ? 'Verifying...' : 'Verify & Create Account'}
+                {resendTimer > 0 ? `Resend OTP in ${resendTimer}s` : 'Resend OTP'}
               </Button>
+            </div>
 
-              <div className="text-center space-y-2">
-                <p className="text-sm text-white/80">
-                  Didn't receive the code?
-                </p>
-                <Button
-                  variant="ghost"
-                  onClick={handleResendOtp}
-                  disabled={resendTimer > 0 || loading}
-                  className="text-white hover:text-white/80 hover:bg-white/10"
-                >
-                  {resendTimer > 0
-                    ? `Resend OTP in ${resendTimer}s`
-                    : 'Resend OTP'}
-                </Button>
-              </div>
-
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setShowOtpStep(false);
-                  setOtp('');
-                  setError('');
-                }}
-                className="w-full bg-white/10 border-white/30 text-white hover:bg-white/20"
-              >
-                Change Email
-              </Button>
-            </CardContent>
-          </Card>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowOtpStep(false);
+                setOtp('');
+                setError('');
+              }}
+              className="w-full bg-white/10 border-white/30 text-white hover:bg-white/20"
+            >
+              Change Email
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen relative flex items-center justify-center px-4 py-8">
-      {/* Full Background Image */}
       <div className="absolute inset-0">
-        <img 
-          src={authImage} 
-          alt="Authentication Background" 
-          className="w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-black/50" /> {/* Dark overlay */}
+        <img src={authImage} alt="Authentication Background" className="w-full h-full object-cover" />
+        <div className="absolute inset-0 bg-black/50" />
       </div>
 
-      {/* Back to Landing Button */}
       <Link 
         to="/" 
         className="absolute top-6 left-6 z-20 flex items-center gap-2 text-white hover:text-white/80 transition-colors"
@@ -267,7 +205,6 @@ export const SignUp: React.FC = () => {
         <span>Back to Home</span>
       </Link>
 
-      {/* Sign Up Form as Transparent Popup */}
       <Card className="w-full max-w-md relative z-10 shadow-2xl bg-white/10 backdrop-blur-lg border-white/20">
         <CardHeader className="space-y-1">
           <div className="flex items-center justify-center mb-4">
@@ -279,13 +216,13 @@ export const SignUp: React.FC = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSendOtp} className="space-y-4">
             {error && (
               <Alert variant="destructive" className="bg-red-500/20 border-red-300/30 backdrop-blur-sm">
                 <AlertDescription className="text-white">{error}</AlertDescription>
               </Alert>
             )}
-            
+
             <div className="space-y-2">
               <Label htmlFor="name" className="text-white">Full Name</Label>
               <div className="relative">
@@ -319,37 +256,6 @@ export const SignUp: React.FC = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="role" className="text-white">Account Type</Label>
-              <Select value={role} onValueChange={(value: 'user' | 'admin') => setRole(value)}>
-                <SelectTrigger className="w-full bg-white/10 border-white/30 text-white focus:bg-white/20">
-                  <div className="flex items-center gap-2">
-                    <SelectValue placeholder="Select account type" />
-                  </div>
-                </SelectTrigger>
-                <SelectContent className="bg-gray-900/95 backdrop-blur-lg border-white/20">
-                   <SelectItem value="user" className="text-white focus:bg-white/10">
-                    <div className="flex items-center gap-2">
-                      <User className="w-4 h-4" />
-                      <div>
-                        <div className="font-medium">User</div>
-                        <div className="text-xs text-gray-400">Report and track incidents</div>
-                      </div>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="admin" className="text-white focus:bg-white/10">
-                    <div className="flex items-center gap-2">
-                      <Shield className="w-4 h-4" />
-                      <div>
-                        <div className="font-medium">Administrator</div>
-                        <div className="text-xs text-gray-400">Manage and review all incidents</div>
-                      </div>
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
               <Label htmlFor="password" className="text-white">Password</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-white/60" />
@@ -363,9 +269,7 @@ export const SignUp: React.FC = () => {
                   className="pl-10 bg-white/10 border-white/30 text-white placeholder:text-white/50 focus:bg-white/20"
                 />
               </div>
-              <p className="text-xs text-white/70">
-                Must be at least 6 characters
-              </p>
+              <p className="text-xs text-white/70">Must be at least 6 characters</p>
             </div>
 
             <Button type="submit" className="w-full bg-red-600 hover:bg-red-700 text-white" disabled={loading}>

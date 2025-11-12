@@ -45,13 +45,13 @@ function App() {
                 } 
               />
               
-              {/* Protected routes */}
+              {/* Protected routes with automatic role-based redirect */}
               <Route
                 path="/dashboard"
                 element={
                   <ProtectedRoute>
                     <Layout>
-                      <Navigate to="/incidents" replace />
+                      <RoleBasedRedirect />
                     </Layout>
                   </ProtectedRoute>
                 }
@@ -123,8 +123,8 @@ function App() {
                 }
               />
               
-              {/* Catch all */}
-              <Route path="*" element={<Navigate to="/" replace />} />
+              {/* Catch all - redirect based on role */}
+              <Route path="*" element={<NavigateToAppropriateRoute />} />
             </Routes>
             <Toaster />
           </DataProvider>
@@ -133,5 +133,34 @@ function App() {
     </Router>
   );
 }
+
+// Component to redirect users based on their role
+const RoleBasedRedirect: React.FC = () => {
+  const { user } = useAuth();
+  
+  if (user?.role === 'admin') {
+    return <Navigate to="/admin" replace />;
+  } else {
+    return <Navigate to="/incidents" replace />;
+  }
+};
+
+// Component for catch-all route that considers authentication and role
+const NavigateToAppropriateRoute: React.FC = () => {
+  const { user, isAuthenticated } = useAuth();
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/" replace />;
+  }
+  
+  if (user?.role === 'admin') {
+    return <Navigate to="/admin" replace />;
+  } else {
+    return <Navigate to="/incidents" replace />;
+  }
+};
+
+// You'll need to import useAuth
+import { useAuth } from './contexts/AuthContext';
 
 export default App;

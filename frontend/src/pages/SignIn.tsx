@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Alert, AlertDescription } from '../components/ui/alert';
 import { AlertCircle, Mail, Lock, ArrowLeft } from 'lucide-react';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '../components/ui/input-otp';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 import authImage from 'figma:asset/25b9347e01175272ae75dfe2e161b71b53ca49ac.png';
 
 export const SignIn: React.FC = () => {
@@ -18,12 +18,10 @@ export const SignIn: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [showOtpStep, setShowOtpStep] = useState(false);
   const [otp, setOtp] = useState('');
-  const [generatedOtp, setGeneratedOtp] = useState('');
   const [resendTimer, setResendTimer] = useState(0);
-  const { signIn } = useAuth();
+  const { signIn, verifySignInOtp, user } = useAuth();
   const navigate = useNavigate();
 
-  // Timer for resend button
   useEffect(() => {
     if (resendTimer > 0) {
       const timer = setTimeout(() => setResendTimer(resendTimer - 1), 1000);
@@ -31,43 +29,18 @@ export const SignIn: React.FC = () => {
     }
   }, [resendTimer]);
 
-  const generateOtp = () => {
-    // Generate a random 6-digit OTP
-    return Math.floor(100000 + Math.random() * 900000).toString();
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
     try {
-      // First verify credentials exist in localStorage
-      const users = JSON.parse(localStorage.getItem('users') || '[]');
-      const foundUser = users.find((u: any) => 
-        u.email === email && u.password === password
-      );
-
-      if (!foundUser) {
-        setError('Invalid email or password');
-        setLoading(false);
-        return;
-      }
-
-      // Credentials are valid, send OTP
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const newOtp = generateOtp();
-      setGeneratedOtp(newOtp);
-      
-      // In a real app, this would send to email
-      console.log('OTP sent to', email, ':', newOtp);
-      toast.success(`OTP sent to ${email}`);
-      
+      const result = await signIn(email, password);
+      toast.success(result.message);
       setShowOtpStep(true);
-      setResendTimer(60); // 60 seconds cooldown
+      setResendTimer(60);
     } catch (err) {
-      setError('Failed to send OTP. Please try again.');
+      setError(err instanceof Error ? err.message : 'Failed to send OTP');
     } finally {
       setLoading(false);
     }
@@ -78,18 +51,12 @@ export const SignIn: React.FC = () => {
 
     setLoading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const newOtp = generateOtp();
-      setGeneratedOtp(newOtp);
-      
-      console.log('OTP resent to', email, ':', newOtp);
-      toast.success('OTP resent successfully');
-      
+      const result = await signIn(email, password); // Resend OTP
+      toast.success('New verification code sent!');
       setResendTimer(60);
-      setOtp(''); // Clear previous OTP input
+      setOtp('');
     } catch (err) {
-      toast.error('Failed to resend OTP');
+      toast.error(err instanceof Error ? err.message : 'Failed to resend OTP');
     } finally {
       setLoading(false);
     }
@@ -101,22 +68,23 @@ export const SignIn: React.FC = () => {
       return;
     }
 
-    if (otp !== generatedOtp) {
-      setError('Invalid OTP. Please try again.');
-      setOtp('');
-      return;
-    }
-
     setLoading(true);
     setError('');
 
     try {
-      // OTP verified, now sign in
-      await signIn(email, password);
+      await verifySignInOtp(email, otp);
       toast.success('Successfully signed in!');
-      navigate('/create');
+      
+      // Use the user from AuthContext to determine redirect
+      // Note: The user state is updated immediately after verifySignInOtp
+      if (user?.role === 'admin') {
+        navigate('/admin');
+      } else {
+        navigate('/incidents');
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to sign in');
+      setError(err instanceof Error ? err.message : 'Failed to verify OTP');
+      setOtp('');
     } finally {
       setLoading(false);
     }
@@ -126,33 +94,23 @@ export const SignIn: React.FC = () => {
     setOtp(value);
     setError('');
     
-    // Auto-verify when 6 digits are entered
     if (value.length === 6) {
-      setTimeout(() => {
-        if (value === generatedOtp) {
-          handleVerifyOtp();
-        } else {
-          setError('Invalid OTP. Please try again.');
-          setTimeout(() => setOtp(''), 500);
-        }
-      }, 300);
+      handleVerifyOtp();
     }
   };
 
   if (showOtpStep) {
     return (
       <div className="min-h-screen relative flex items-center justify-center px-4 py-8">
-        {/* Full Background Image */}
         <div className="absolute inset-0">
           <img 
             src={authImage} 
             alt="Authentication Background" 
             className="w-full h-full object-cover"
           />
-          <div className="absolute inset-0 bg-black/50" /> {/* Dark overlay */}
+          <div className="absolute inset-0 bg-black/50" />
         </div>
 
-        {/* Back to Landing Button */}
         <Link 
           to="/" 
           className="absolute top-6 left-6 z-20 flex items-center gap-2 text-white hover:text-white/80 transition-colors"
@@ -161,107 +119,104 @@ export const SignIn: React.FC = () => {
           <span>Back to Home</span>
         </Link>
 
-        {/* OTP Form as Transparent Popup */}
         <Card className="w-full max-w-md relative z-10 shadow-2xl bg-white/10 backdrop-blur-lg border-white/20">
-            <CardHeader className="space-y-1">
-              <div className="flex items-center justify-center mb-4">
-                <div className="w-16 h-16 bg-red-500/20 backdrop-blur-sm rounded-full flex items-center justify-center border border-red-300/30">
-                  <Mail className="w-8 h-8 text-white" />
-                </div>
+          <CardHeader className="space-y-1">
+            <div className="flex items-center justify-center mb-4">
+              <div className="w-16 h-16 bg-red-500/20 backdrop-blur-sm rounded-full flex items-center justify-center border border-red-300/30">
+                <Mail className="w-8 h-8 text-white" />
               </div>
-              <CardTitle className="text-center text-white">Verify Your Email</CardTitle>
-              <CardDescription className="text-center text-white/80">
-                We've sent a 6-digit verification code to<br />
-                <span className="font-medium text-white">{email}</span>
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {error && (
-                <Alert variant="destructive" className="bg-red-500/20 border-red-300/30 backdrop-blur-sm">
-                  <AlertDescription className="text-white">{error}</AlertDescription>
-                </Alert>
-              )}
+            </div>
+            <CardTitle className="text-center text-white">Verify Your Email</CardTitle>
+            <CardDescription className="text-center text-white/80">
+              We've sent a 6-digit verification code to<br />
+              <span className="font-medium text-white">{email}</span>
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {error && (
+              <Alert variant="destructive" className="bg-red-500/20 border-red-300/30 backdrop-blur-sm">
+                <AlertDescription className="text-white">{error}</AlertDescription>
+              </Alert>
+            )}
 
-              <div className="space-y-4">
-                <Label htmlFor="otp" className="text-center block text-white">
-                  Enter Verification Code
-                </Label>
-                <div className="flex justify-center">
-                  <InputOTP
-                    maxLength={6}
-                    value={otp}
-                    onChange={handleOtpChange}
-                    disabled={loading}
-                  >
-                    <InputOTPGroup>
-                      <InputOTPSlot index={0} className="bg-white/10 border-white/30 text-white" />
-                      <InputOTPSlot index={1} className="bg-white/10 border-white/30 text-white" />
-                      <InputOTPSlot index={2} className="bg-white/10 border-white/30 text-white" />
-                      <InputOTPSlot index={3} className="bg-white/10 border-white/30 text-white" />
-                      <InputOTPSlot index={4} className="bg-white/10 border-white/30 text-white" />
-                      <InputOTPSlot index={5} className="bg-white/10 border-white/30 text-white" />
-                    </InputOTPGroup>
-                  </InputOTP>
-                </div>
-                <p className="text-xs text-center text-white/70">
-                  Check your email for the verification code
-                </p>
-              </div>
-
-              <Button
-                onClick={handleVerifyOtp}
-                className="w-full bg-red-600 hover:bg-red-700 text-white"
-                disabled={loading || otp.length !== 6}
-              >
-                {loading ? 'Verifying...' : 'Verify & Sign In'}
-              </Button>
-
-              <div className="text-center space-y-2">
-                <p className="text-sm text-white/80">
-                  Didn't receive the code?
-                </p>
-                <Button
-                  variant="ghost"
-                  onClick={handleResendOtp}
-                  disabled={resendTimer > 0 || loading}
-                  className="text-white hover:text-white/80 hover:bg-white/10"
+            <div className="space-y-4">
+              <Label htmlFor="otp" className="text-center block text-white">
+                Enter Verification Code
+              </Label>
+              <div className="flex justify-center">
+                <InputOTP
+                  maxLength={6}
+                  value={otp}
+                  onChange={handleOtpChange}
+                  disabled={loading}
                 >
-                  {resendTimer > 0
-                    ? `Resend OTP in ${resendTimer}s`
-                    : 'Resend OTP'}
-                </Button>
+                  <InputOTPGroup>
+                    <InputOTPSlot index={0} className="bg-white/10 border-white/30 text-white" />
+                    <InputOTPSlot index={1} className="bg-white/10 border-white/30 text-white" />
+                    <InputOTPSlot index={2} className="bg-white/10 border-white/30 text-white" />
+                    <InputOTPSlot index={3} className="bg-white/10 border-white/30 text-white" />
+                    <InputOTPSlot index={4} className="bg-white/10 border-white/30 text-white" />
+                    <InputOTPSlot index={5} className="bg-white/10 border-white/30 text-white" />
+                  </InputOTPGroup>
+                </InputOTP>
               </div>
+              <p className="text-xs text-center text-white/70">
+                Check your email for the verification code
+              </p>
+            </div>
 
+            <Button
+              onClick={handleVerifyOtp}
+              className="w-full bg-red-600 hover:bg-red-700 text-white"
+              disabled={loading || otp.length !== 6}
+            >
+              {loading ? 'Verifying...' : 'Verify & Sign In'}
+            </Button>
+
+            <div className="text-center space-y-2">
+              <p className="text-sm text-white/80">
+                Didn't receive the code?
+              </p>
               <Button
-                variant="outline"
-                onClick={() => {
-                  setShowOtpStep(false);
-                  setOtp('');
-                  setError('');
-                }}
-                className="w-full bg-white/10 border-white/30 text-white hover:bg-white/20"
+                variant="ghost"
+                onClick={handleResendOtp}
+                disabled={resendTimer > 0 || loading}
+                className="text-white hover:text-white/80 hover:bg-white/10"
               >
-                Change Email
+                {resendTimer > 0
+                  ? `Resend OTP in ${resendTimer}s`
+                  : 'Resend OTP'}
               </Button>
-            </CardContent>
-          </Card>
+            </div>
+
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowOtpStep(false);
+                setOtp('');
+                setError('');
+              }}
+              className="w-full bg-white/10 border-white/30 text-white hover:bg-white/20"
+            >
+              Change Email
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen relative flex items-center justify-center px-4 py-8">
-      {/* Full Background Image */}
       <div className="absolute inset-0">
         <img 
           src={authImage} 
           alt="Authentication Background" 
           className="w-full h-full object-cover"
         />
-        <div className="absolute inset-0 bg-black/50" /> {/* Dark overlay */}
+        <div className="absolute inset-0 bg-black/50" />
       </div>
 
-      {/* Back to Landing Button */}
       <Link 
         to="/" 
         className="absolute top-6 left-6 z-20 flex items-center gap-2 text-white hover:text-white/80 transition-colors"
@@ -270,7 +225,6 @@ export const SignIn: React.FC = () => {
         <span>Back to Home</span>
       </Link>
 
-      {/* Sign In Form as Transparent Popup */}
       <Card className="w-full max-w-md relative z-10 shadow-2xl bg-white/10 backdrop-blur-lg border-white/20">
         <CardHeader className="space-y-1">
           <div className="flex items-center justify-center mb-4">
@@ -282,7 +236,7 @@ export const SignIn: React.FC = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSendOtp} className="space-y-4">
             {error && (
               <Alert variant="destructive" className="bg-red-500/20 border-red-300/30 backdrop-blur-sm">
                 <AlertDescription className="text-white">{error}</AlertDescription>

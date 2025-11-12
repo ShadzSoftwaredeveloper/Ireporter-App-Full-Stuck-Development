@@ -1,7 +1,49 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Incident, DataContextType } from '../types';
+
+interface Location {
+  lat: number;
+  lng: number;
+  address?: string;
+}
+
+interface MediaFile {
+  id: string;
+  type: 'image' | 'video';
+  url: string;
+  thumbnail?: string;
+}
+
+interface Incident {
+  id: string;
+  type: 'red-flag' | 'intervention';
+  title: string;
+  description: string;
+  location: Location;
+  media: MediaFile[];
+  status: 'draft' | 'under-investigation' | 'resolved' | 'rejected';
+  created_at: string;
+  updated_at: string;
+  user_id: string;
+  user_name?: string;
+  user_email?: string;
+  admin_comment?: string;
+}
+
+interface DataContextType {
+  incidents: Incident[];
+  createIncident: (incident: Omit<Incident, 'id' | 'created_at' | 'updated_at' | 'user_id' | 'user_name' | 'user_email'>) => Promise<void>;
+  updateIncident: (id: string, updates: Partial<Incident>) => Promise<void>;
+  deleteIncident: (id: string) => Promise<void>;
+  getIncidentById: (id: string) => Promise<Incident | null>;
+  getUserIncidents: (userId: string) => Promise<Incident[]>;
+  refreshIncidents: () => Promise<void>;
+  loading: boolean;
+  error: string | null;
+}
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
+
+const API_BASE_URL = 'http://localhost:5000/api';
 
 export const useData = () => {
   const context = useContext(DataContext);
@@ -15,89 +57,236 @@ interface DataProviderProps {
   children: React.ReactNode;
 }
 
-// Mock incidents for demonstration
-const mockIncidents: Incident[] = [
-  {
-    id: '1',
-    type: 'red-flag',
-    title: 'Corruption in Public Procurement',
-    description: 'Evidence of inflated contract prices in road construction project',
-    location: { lat: 40.7128, lng: -74.0060, address: 'New York, NY' },
-    media: [],
-    status: 'under-investigation',
-    createdAt: '2025-01-15T10:30:00Z',
-    updatedAt: '2025-01-15T10:30:00Z',
-    userId: 'demo-user',
-  },
-  {
-    id: '2',
-    type: 'intervention',
-    title: 'Bridge Repair Needed',
-    description: 'Damaged bridge poses safety risk to commuters',
-    location: { lat: 34.0522, lng: -118.2437, address: 'Los Angeles, CA' },
-    media: [],
-    status: 'resolved',
-    createdAt: '2025-01-10T14:20:00Z',
-    updatedAt: '2025-01-18T09:15:00Z',
-    userId: 'demo-user',
-    adminComment: 'Bridge repairs completed successfully',
-  },
-];
-
 export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   const [incidents, setIncidents] = useState<Incident[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    // Load incidents from localStorage or use mock data
-    const storedIncidents = localStorage.getItem('incidents');
-    if (storedIncidents) {
-      setIncidents(JSON.parse(storedIncidents));
-    } else {
-      setIncidents(mockIncidents);
-      localStorage.setItem('incidents', JSON.stringify(mockIncidents));
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      throw new Error('No authentication token found');
     }
-  }, []);
-
-  const saveIncidents = (updatedIncidents: Incident[]) => {
-    setIncidents(updatedIncidents);
-    localStorage.setItem('incidents', JSON.stringify(updatedIncidents));
+    return {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    };
   };
 
-  const createIncident = (incident: Omit<Incident, 'id' | 'createdAt' | 'updatedAt' | 'userId'>) => {
-    const currentUser = localStorage.getItem('currentUser');
-    const userId = currentUser ? JSON.parse(currentUser).id : 'anonymous';
+  const transformIncidentFromBackend = (incident: any): Incident => {
+    return {
+      id: incident.id,
+      type: incident.type,
+      title: incident.title,
+      description: incident.description,
+      location: {
+        lat: parseFloat(incident.location_lat),
+        lng: parseFloat(incident.location_lng),
+        address: incident.location_address
+      },
+      media: incident.media || [],
+      status: incident.status,
+      created_at: incident.created_at,
+      updated_at: incident.updated_at,
+      user_id: incident.user_id,
+      user_name: incident.user_name,
+      user_email: incident.user_email,
+      admin_comment: incident.admin_comment
+    };
+  };
 
-    const newIncident: Incident = {
-      ...incident,
-      id: crypto.randomUUID(),
-      userId,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+  const transformIncidentToBackend = (incident: any) => {
+    console.log('🔄 Transforming incident for backend - Original data:', incident);
+    
+    // Validate and provide defaults for all fields
+    const transformed = {
+      type: incident.type || 'red-flag',
+      title: incident.title || '',
+      description: incident.description || '',
+      location: {
+        lat: incident.location?.lat !== undefined && incident.location.lat !== null ? incident.location.lat : 40.7128,
+        lng: incident.location?.lng !== undefined && incident.location.lng !== null ? incident.location.lng : -74.0060,
+        address: incident.location?.address || null
+      },
+      media: incident.media || [],
+      status: incident.status || 'draft'
     };
 
-    saveIncidents([...incidents, newIncident]);
+    console.log('🔄 Transformed incident for backend:', transformed);
+    
+    // Validate no undefined values
+    Object.entries(transformed).forEach(([key, value]) => {
+      if (value === undefined) {
+        console.error(`❌ ERROR: ${key} is undefined in transformed data!`);
+      }
+    });
+
+    if (transformed.location.lat === undefined || transformed.location.lng === undefined) {
+      console.error('❌ ERROR: Location coordinates are undefined!');
+    }
+
+    return transformed;
   };
 
-  const updateIncident = (id: string, updates: Partial<Incident>) => {
-    const updatedIncidents = incidents.map((incident) =>
-      incident.id === id
-        ? { ...incident, ...updates, updatedAt: new Date().toISOString() }
-        : incident
-    );
-    saveIncidents(updatedIncidents);
+  const refreshIncidents = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const headers = getAuthHeaders();
+      const response = await fetch(`${API_BASE_URL}/incidents`, {
+        headers: headers,
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch incidents: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const transformedIncidents = data.map(transformIncidentFromBackend);
+      setIncidents(transformedIncidents);
+    } catch (error) {
+      console.error('Error fetching incidents:', error);
+      setError(error instanceof Error ? error.message : 'Failed to fetch incidents');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const deleteIncident = (id: string) => {
-    const updatedIncidents = incidents.filter((incident) => incident.id !== id);
-    saveIncidents(updatedIncidents);
+  useEffect(() => {
+    refreshIncidents();
+  }, []);
+
+  const createIncident = async (incident: Omit<Incident, 'id' | 'created_at' | 'updated_at' | 'user_id' | 'user_name' | 'user_email'>) => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      console.log('🚀 Starting createIncident process...');
+      console.log('📝 Original incident data:', incident);
+
+      const backendIncident = transformIncidentToBackend(incident);
+      
+      console.log('📤 Sending to backend:', backendIncident);
+      console.log('📤 JSON stringified:', JSON.stringify(backendIncident));
+
+      const headers = getAuthHeaders();
+      const response = await fetch(`${API_BASE_URL}/incidents`, {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify(backendIncident),
+      });
+
+      console.log('📨 Backend response status:', response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Backend error response:', errorText);
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          errorData = { error: errorText };
+        }
+        throw new Error(errorData.error || `Failed to create incident: ${response.status}`);
+      }
+
+      const responseData = await response.json();
+      console.log('✅ Incident created successfully:', responseData);
+      
+      await refreshIncidents();
+    } catch (error) {
+      console.error('❌ Error in createIncident:', error);
+      setError(error instanceof Error ? error.message : 'Failed to create incident');
+      throw error;
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const getIncidentById = (id: string) => {
-    return incidents.find((incident) => incident.id === id);
+  const updateIncident = async (id: string, updates: Partial<Incident>) => {
+    setError(null);
+    
+    try {
+      const backendUpdates: any = {};
+      
+      if (updates.status) backendUpdates.status = updates.status;
+      if (updates.adminComment !== undefined) backendUpdates.adminComment = updates.adminComment;
+
+      const response = await fetch(`${API_BASE_URL}/incidents/${id}`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(backendUpdates),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update incident');
+      }
+
+      await refreshIncidents();
+    } catch (error) {
+      console.error('Error updating incident:', error);
+      setError(error instanceof Error ? error.message : 'Failed to update incident');
+      throw error;
+    }
   };
 
-  const getUserIncidents = (userId: string) => {
-    return incidents.filter((incident) => incident.userId === userId);
+  const deleteIncident = async (id: string) => {
+    setError(null);
+    
+    try {
+      const response = await fetch(`${API_BASE_URL}/incidents/${id}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete incident');
+      }
+
+      await refreshIncidents();
+    } catch (error) {
+      console.error('Error deleting incident:', error);
+      setError(error instanceof Error ? error.message : 'Failed to delete incident');
+      throw error;
+    }
+  };
+
+  const getIncidentById = async (id: string): Promise<Incident | null> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/incidents/${id}`, {
+        headers: getAuthHeaders(),
+      });
+
+      if (!response.ok) {
+        return null;
+      }
+
+      const incident = await response.json();
+      return transformIncidentFromBackend(incident);
+    } catch (error) {
+      console.error('Error fetching incident:', error);
+      return null;
+    }
+  };
+
+  const getUserIncidents = async (userId: string): Promise<Incident[]> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/incidents/user/${userId}`, {
+        headers: getAuthHeaders(),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch user incidents');
+      }
+
+      const data = await response.json();
+      return data.map(transformIncidentFromBackend);
+    } catch (error) {
+      console.error('Error fetching user incidents:', error);
+      throw error;
+    }
   };
 
   return (
@@ -109,6 +298,9 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
         deleteIncident,
         getIncidentById,
         getUserIncidents,
+        refreshIncidents,
+        loading,
+        error,
       }}
     >
       {children}

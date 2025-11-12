@@ -1,7 +1,30 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User, AuthContextType } from '../types';
+
+interface User {
+  id: string;
+  email: string;
+  name: string;
+  role: 'user' | 'admin';
+  profile_picture?: string;
+  created_at: string;
+}
+
+interface AuthContextType {
+  user: User | null;
+  isAuthenticated: boolean;
+  signIn: (email: string, password: string) => Promise<{ message: string; email: string }>;
+  verifySignInOtp: (email: string, otp: string) => Promise<void>;
+  signUp: (email: string, password: string, name: string, role?: 'user' | 'admin') => Promise<{ message: string; email: string }>;
+  verifySignUpOtp: (email: string, otp: string) => Promise<void>;
+  signOut: () => void;
+  updateProfile: (name: string, email: string, profilePicture?: string) => Promise<void>;
+  deleteUser: (userId: string) => Promise<void>;
+  getAllUsers: () => Promise<User[]>;
+}
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+const API_BASE_URL = 'http://localhost:5000/api';
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -19,135 +42,169 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    // Initialize demo users if not exists
-    const users = localStorage.getItem('users');
-    if (!users) {
-      const demoUsers = [
-        {
-          id: 'demo-user',
-          email: 'user@demo.com',
-          name: 'Demo User',
-          password: 'password',
-          role: 'user',
-          createdAt: '2025-01-01T00:00:00Z',
-        },
-        {
-          id: 'demo-admin',
-          email: 'mugerwashadrach@gmail.com',
-          name: 'Admin User',
-          password: 'Pray3rworks@22',
-          role: 'admin',
-          createdAt: '2025-01-01T00:00:00Z',
-        },
-      ];
-      localStorage.setItem('users', JSON.stringify(demoUsers));
-    }
-
-    // Load user from localStorage on mount
-    const storedUser = localStorage.getItem('currentUser');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
+    // Check if user is authenticated by verifying token with backend
+    const token = localStorage.getItem('token');
+    if (token) {
+      verifyToken();
     }
   }, []);
 
-  const signIn = async (email: string, password: string) => {
-    // Mock authentication
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    const foundUser = users.find((u: User & { password: string }) => 
-      u.email === email && u.password === password
-    );
+  const verifyToken = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/users/profile`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
 
-    if (!foundUser) {
-      throw new Error('Invalid email or password');
+      if (response.ok) {
+        const userData = await response.json();
+        setUser(userData);
+      } else {
+        // Token is invalid, clear it
+        localStorage.removeItem('token');
+        setUser(null);
+      }
+    } catch (error) {
+      console.error('Token verification failed:', error);
+      localStorage.removeItem('token');
+      setUser(null);
     }
-
-    const { password: _, ...userWithoutPassword } = foundUser;
-    setUser(userWithoutPassword);
-    localStorage.setItem('currentUser', JSON.stringify(userWithoutPassword));
   };
 
-  const signUp = async (email: string, password: string, name: string, role: 'user' | 'admin' = 'user') => {
-    // Mock user registration
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    
-    if (users.find((u: User) => u.email === email)) {
-      throw new Error('Email already registered');
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('token');
+    return {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    };
+  };
+
+  const signIn = async (email: string, password: string): Promise<{ message: string; email: string }> => {
+    const response = await fetch(`${API_BASE_URL}/auth/send-signin-otp`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email, password }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to send OTP');
     }
 
-    const newUser: User & { password: string } = {
-      id: crypto.randomUUID(),
-      email,
-      name,
-      password,
-      role,
-      createdAt: new Date().toISOString(),
-    };
+    const data = await response.json();
+    return data;
+  };
 
-    users.push(newUser);
-    localStorage.setItem('users', JSON.stringify(users));
+  const verifySignInOtp = async (email: string, otp: string) => {
+    const response = await fetch(`${API_BASE_URL}/auth/verify-signin-otp`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email, otp }),
+    });
 
-    const { password: _, ...userWithoutPassword } = newUser;
-    setUser(userWithoutPassword);
-    localStorage.setItem('currentUser', JSON.stringify(userWithoutPassword));
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Invalid OTP');
+    }
+
+    const data = await response.json();
+    
+    // Store token for future requests
+    localStorage.setItem('token', data.token);
+    setUser(data.user);
+  };
+
+  const signUp = async (email: string, password: string, name: string, role: 'user' | 'admin' = 'user'): Promise<{ message: string; email: string }> => {
+    const response = await fetch(`${API_BASE_URL}/auth/send-signup-otp`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email, password, name, role }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to send OTP');
+    }
+
+    const data = await response.json();
+    return data;
+  };
+
+  const verifySignUpOtp = async (email: string, otp: string) => {
+    const response = await fetch(`${API_BASE_URL}/auth/verify-signup-otp`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email, otp }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Invalid OTP');
+    }
+
+    const data = await response.json();
+    
+    // Store token for future requests
+    localStorage.setItem('token', data.token);
+    setUser(data.user);
   };
 
   const signOut = () => {
+    localStorage.removeItem('token');
     setUser(null);
-    localStorage.removeItem('currentUser');
   };
 
   const updateProfile = async (name: string, email: string, profilePicture?: string) => {
-    if (!user) {
-      throw new Error('No user logged in');
-    }
-
-    // Check if email is already taken by another user
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    const emailTaken = users.find((u: User) => u.email === email && u.id !== user.id);
-    
-    if (emailTaken) {
-      throw new Error('Email already in use');
-    }
-
-    // Update user in users array
-    const updatedUsers = users.map((u: User & { password?: string }) => {
-      if (u.id === user.id) {
-        return { ...u, name, email, profilePicture };
-      }
-      return u;
+    const response = await fetch(`${API_BASE_URL}/users/profile`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ 
+        name, 
+        email, 
+        profile_picture: profilePicture 
+      }),
     });
 
-    localStorage.setItem('users', JSON.stringify(updatedUsers));
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to update profile');
+    }
 
-    // Update current user
-    const updatedUser = { ...user, name, email, profilePicture };
+    const updatedUser = await response.json();
     setUser(updatedUser);
-    localStorage.setItem('currentUser', JSON.stringify(updatedUser));
   };
 
-  const deleteUser = (userId: string) => {
-    if (!user || user.role !== 'admin') {
-      throw new Error('Only admins can delete users');
-    }
-
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    const updatedUsers = users.filter((u: User) => u.id !== userId);
-    localStorage.setItem('users', JSON.stringify(updatedUsers));
-
-    // If the deleted user is the current user, sign them out
-    if (userId === user.id) {
-      signOut();
-    }
-  };
-
-  const getAllUsers = () => {
-    if (!user || user.role !== 'admin') {
-      return [];
-    }
-    return JSON.parse(localStorage.getItem('users') || '[]').map((u: User & { password?: string }) => {
-      const { password, ...userWithoutPassword } = u;
-      return userWithoutPassword;
+  const deleteUser = async (userId: string) => {
+    const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
     });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to delete user');
+    }
+  };
+
+  const getAllUsers = async (): Promise<User[]> => {
+    const response = await fetch(`${API_BASE_URL}/users`, {
+      headers: getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch users');
+    }
+
+    return await response.json();
   };
 
   return (
@@ -156,7 +213,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         user,
         isAuthenticated: !!user,
         signIn,
+        verifySignInOtp,
         signUp,
+        verifySignUpOtp,
         signOut,
         updateProfile,
         deleteUser,

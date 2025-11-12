@@ -13,6 +13,7 @@ import { MediaGallery } from '../components/MediaGallery';
 import { IncidentType, Location, MediaFile } from '../types';
 import { Upload, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '../components/ui/alert';
+import { toast } from 'sonner';
 
 export const CreateIncident: React.FC = () => {
   const navigate = useNavigate();
@@ -28,6 +29,7 @@ export const CreateIncident: React.FC = () => {
   });
   const [media, setMedia] = useState<MediaFile[]>([]);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleMediaUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -57,30 +59,58 @@ export const CreateIncident: React.FC = () => {
     setMedia(media.filter((m) => m.id !== id));
   };
 
-  const handleSubmit = (e: React.FormEvent, status: 'draft' | 'under-investigation') => {
+  const handleSubmit = async (e: React.FormEvent, status: 'draft' | 'under-investigation') => {
     e.preventDefault();
     setError('');
+    setLoading(true);
+
+    console.log('📝 CREATE INCIDENT - Starting submission...');
+    console.log('📝 Form data:', {
+      type,
+      title,
+      description,
+      location,
+      media: media.length,
+      status
+    });
 
     if (!title.trim()) {
       setError('Please enter a title');
+      setLoading(false);
       return;
     }
 
     if (!description.trim()) {
       setError('Please enter a description');
+      setLoading(false);
       return;
     }
 
-    createIncident({
-      type,
-      title,
-      description,
-      location,
-      media,
-      status,
-    });
-
-    navigate('/incidents');
+    try {
+      console.log('🚀 Calling createIncident API...');
+      
+      // Wait for the incident to be created
+      await createIncident({
+        type,
+        title: title.trim(),
+        description: description.trim(),
+        location,
+        media,
+        status,
+      });
+      
+      console.log('✅ Incident created successfully!');
+      toast.success('Incident created successfully!');
+      navigate('/incidents');
+      
+    } catch (err) {
+      console.error('❌ Error creating incident:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to create incident';
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (!user) {
@@ -143,6 +173,7 @@ export const CreateIncident: React.FC = () => {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 required
+                disabled={loading}
               />
             </div>
 
@@ -155,6 +186,7 @@ export const CreateIncident: React.FC = () => {
                 onChange={(e) => setDescription(e.target.value)}
                 rows={6}
                 required
+                disabled={loading}
               />
             </div>
           </CardContent>
@@ -178,7 +210,7 @@ export const CreateIncident: React.FC = () => {
           <CardContent className="space-y-4">
             <div>
               <Label htmlFor="media-upload" className="cursor-pointer">
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-gray-400 transition-colors">
+                <div className={`border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-gray-400 transition-colors ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}>
                   <Upload className="w-12 h-12 text-gray-400 mx-auto mb-3" />
                   <p className="text-gray-600 mb-1">Click to upload images or videos</p>
                   <p className="text-sm text-gray-500">PNG, JPG, GIF, MP4, MOV up to 10MB</p>
@@ -191,6 +223,7 @@ export const CreateIncident: React.FC = () => {
                 multiple
                 onChange={handleMediaUpload}
                 className="hidden"
+                disabled={loading}
               />
             </div>
 
@@ -198,7 +231,7 @@ export const CreateIncident: React.FC = () => {
               <MediaGallery 
                 media={media} 
                 onRemove={handleRemoveMedia}
-                editable
+                editable={!loading}
               />
             )}
           </CardContent>
@@ -209,14 +242,16 @@ export const CreateIncident: React.FC = () => {
             type="button"
             variant="outline"
             onClick={(e) => handleSubmit(e, 'draft')}
+            disabled={loading}
           >
-            Save as Draft
+            {loading ? 'Saving...' : 'Save as Draft'}
           </Button>
           <Button
             type="button"
             onClick={(e) => handleSubmit(e, 'under-investigation')}
+            disabled={loading}
           >
-            Submit Incident
+            {loading ? 'Submitting...' : 'Submit Incident'}
           </Button>
         </div>
       </form>
