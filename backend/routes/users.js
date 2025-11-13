@@ -48,6 +48,9 @@ router.put('/profile', authenticateToken, async (req, res) => {
     const userId = req.user.userId;
     const { name, email, profile_picture } = req.body;
 
+    console.log('🔄 Updating profile for user:', userId);
+    console.log('📥 Update data:', { name, email, profile_picture: profile_picture ? 'provided' : 'not provided' });
+
     if (email) {
       const [existingUsers] = await pool.execute(
         'SELECT id FROM users WHERE email = ? AND id != ?',
@@ -93,9 +96,60 @@ router.put('/profile', authenticateToken, async (req, res) => {
       [userId]
     );
 
+    console.log('✅ Profile updated successfully');
     res.json(users[0]);
   } catch (error) {
     console.error('Update profile error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Delete user (admin only)
+router.delete('/:userId', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    const { userId } = req.params;
+    
+    // Prevent self-deletion
+    if (req.user.userId === parseInt(userId)) {
+      return res.status(400).json({ error: 'Cannot delete your own account' });
+    }
+
+    const connection = await pool.getConnection();
+    await connection.beginTransaction();
+
+    try {
+      // Delete user's media files
+      await connection.execute(
+        'DELETE mf FROM media_files mf JOIN incidents i ON mf.incident_id = i.id WHERE i.user_id = ?',
+        [userId]
+      );
+      
+      // Delete user's incidents
+      await connection.execute(
+        'DELETE FROM incidents WHERE user_id = ?',
+        [userId]
+      );
+      
+      // Delete user
+      await connection.execute(
+        'DELETE FROM users WHERE id = ?',
+        [userId]
+      );
+      
+      await connection.commit();
+      res.json({ message: 'User deleted successfully' });
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
+  } catch (error) {
+    console.error('Delete user error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

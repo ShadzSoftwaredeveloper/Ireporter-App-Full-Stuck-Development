@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -7,7 +7,7 @@ import { Badge } from '../components/ui/badge';
 import { Input } from '../components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Incident, IncidentStatus, IncidentType } from '../types';
-import { MapPin, Calendar, Search, Filter, LayoutGrid, List, Trash2 } from 'lucide-react';
+import { MapPin, Calendar, Search, Filter, LayoutGrid, List, Trash2, RefreshCw } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import {
@@ -20,10 +20,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '../components/ui/alert-dialog';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 
 export const ViewIncidents: React.FC = () => {
-  const { incidents, deleteIncident } = useData();
+  const { incidents, deleteIncident, refreshIncidents, loading } = useData();
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<IncidentType | 'all'>('all');
@@ -32,6 +32,19 @@ export const ViewIncidents: React.FC = () => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [incidentToDelete, setIncidentToDelete] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await refreshIncidents();
+      toast.success('Incidents refreshed');
+    } catch (error) {
+      toast.error('Failed to refresh incidents');
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const getStatusColor = (status: IncidentStatus) => {
     switch (status) {
@@ -83,18 +96,38 @@ export const ViewIncidents: React.FC = () => {
     setDeleteDialogOpen(true);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (incidentToDelete) {
-      deleteIncident(incidentToDelete);
-      toast.success('Draft deleted successfully');
-      setDeleteDialogOpen(false);
-      setIncidentToDelete(null);
+      try {
+        await deleteIncident(incidentToDelete);
+        toast.success('Incident deleted successfully');
+        setDeleteDialogOpen(false);
+        setIncidentToDelete(null);
+      } catch (error) {
+        toast.error('Failed to delete incident');
+      }
     }
   };
 
   const canDeleteIncident = (incident: Incident) => {
-    return user && incident.userId === user.id && incident.status === 'draft';
+    return user && (incident.userId === user.id || user.role === 'admin') && incident.status === 'draft';
   };
+
+  if (loading && incidents.length === 0) {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-gray-900 mb-2">Incident Reports</h1>
+            <p className="text-gray-600">Loading incidents...</p>
+          </div>
+        </div>
+        <div className="flex justify-center items-center py-12">
+          <div className="w-8 h-8 border-2 border-red-600 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -105,9 +138,20 @@ export const ViewIncidents: React.FC = () => {
             Browse and track all reported incidents
           </p>
         </div>
-        <Link to="/create">
-          <Button>Create New Incident</Button>
-        </Link>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="gap-2"
+          >
+            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+          <Link to="/create">
+            <Button>Create New Incident</Button>
+          </Link>
+        </div>
       </div>
 
       {/* Filters */}
@@ -219,7 +263,7 @@ export const ViewIncidents: React.FC = () => {
                       <div className="flex gap-2">
                         {incident.media.slice(0, 3).map((media, idx) => (
                           <div
-                            key={idx}
+                            key={media.id || idx}
                             className="w-16 h-16 bg-gray-200 rounded overflow-hidden"
                           >
                             {media.type === 'image' && (
@@ -228,6 +272,13 @@ export const ViewIncidents: React.FC = () => {
                                 alt=""
                                 className="w-full h-full object-cover"
                               />
+                            )}
+                            {media.type === 'video' && (
+                              <div className="w-full h-full bg-gray-800 flex items-center justify-center">
+                                <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
+                                  <div className="w-0 h-0 border-l-[8px] border-l-gray-900 border-y-[6px] border-y-transparent ml-1"></div>
+                                </div>
+                              </div>
                             )}
                           </div>
                         ))}
@@ -274,6 +325,12 @@ export const ViewIncidents: React.FC = () => {
                               alt=""
                               className="w-full h-full object-cover"
                             />
+                          </div>
+                        ) : incident.media.length > 0 && incident.media[0].type === 'video' ? (
+                          <div className="w-24 h-24 bg-gray-800 rounded flex items-center justify-center">
+                            <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
+                              <div className="w-0 h-0 border-l-[8px] border-l-gray-900 border-y-[6px] border-y-transparent ml-1"></div>
+                            </div>
                           </div>
                         ) : (
                           <div className="w-24 h-24 bg-gray-100 rounded flex items-center justify-center">
@@ -345,6 +402,20 @@ export const ViewIncidents: React.FC = () => {
         <Card>
           <CardContent className="py-12 text-center">
             <p className="text-gray-500">No incidents found matching your criteria</p>
+            {(searchQuery || filterType !== 'all' || filterStatus !== 'all' || showMyIncidents) && (
+              <Button 
+                variant="outline" 
+                className="mt-4"
+                onClick={() => {
+                  setSearchQuery('');
+                  setFilterType('all');
+                  setFilterStatus('all');
+                  setShowMyIncidents(false);
+                }}
+              >
+                Clear filters
+              </Button>
+            )}
           </CardContent>
         </Card>
       )}

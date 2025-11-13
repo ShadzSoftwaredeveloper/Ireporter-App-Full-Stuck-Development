@@ -26,3 +26,23 @@ export const testConnection = async () => {
     return false;
   }
 };
+
+// Example SQL query to alter the table
+const alterMediaFilesTable = `
+  ALTER TABLE media_files
+  MODIFY COLUMN url VARCHAR(2083); -- Increase length to accommodate longer URLs
+`;
+
+// Execute the query to update the schema
+const updateSchema = async () => {
+  try {
+    const connection = await pool.getConnection();
+    await connection.query(alterMediaFilesTable);
+    console.log('✅ Database schema updated successfully.');
+    connection.release();
+  } catch (error) {
+    console.error('❌ Failed to update database schema:', error.message);
+  }
+};
+
+updateSchema();
