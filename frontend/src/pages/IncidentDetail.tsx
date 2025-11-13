@@ -9,15 +9,12 @@ import { MediaGallery } from '../components/MediaGallery';
 import { IncidentStatus } from '../types';
 import { MapPin, Calendar, ArrowLeft, Trash2, Edit } from 'lucide-react';
 import { Alert, AlertDescription } from '../components/ui/alert';
-
 export const IncidentDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { getIncidentById, deleteIncident } = useData();
   const { user } = useAuth();
-
   const incident = id ? getIncidentById(id) : undefined;
-
   if (!incident) {
     return (
       <div className="max-w-4xl mx-auto">
@@ -31,7 +28,6 @@ export const IncidentDetail: React.FC = () => {
       </div>
     );
   }
-
   const getStatusColor = (status: IncidentStatus) => {
     switch (status) {
       case 'draft':
@@ -46,13 +42,11 @@ export const IncidentDetail: React.FC = () => {
         return 'bg-gray-100 text-gray-800';
     }
   };
-
   const getTypeColor = (type: string) => {
-    return type === 'red-flag' 
-      ? 'bg-red-100 text-red-800' 
+    return type === 'red-flag'
+      ? 'bg-red-100 text-red-800'
       : 'bg-orange-100 text-orange-800';
   };
-
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -62,17 +56,14 @@ export const IncidentDetail: React.FC = () => {
       minute: '2-digit',
     });
   };
-
   const handleDelete = () => {
     if (window.confirm('Are you sure you want to delete this incident?')) {
       deleteIncident(incident.id);
       navigate('/incidents');
     }
   };
-
   const isOwner = user?.id === incident.userId;
   const isAdmin = user?.role === 'admin';
-
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Header */}
@@ -98,7 +89,6 @@ export const IncidentDetail: React.FC = () => {
           </div>
         )}
       </div>
-
       {/* Main Content */}
       <Card>
         <CardHeader>
@@ -118,7 +108,6 @@ export const IncidentDetail: React.FC = () => {
             <h3 className="text-gray-900 mb-2">Description</h3>
             <p className="text-gray-600 whitespace-pre-wrap">{incident.description}</p>
           </div>
-
           {/* Metadata */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4 border-y border-gray-200">
             <div className="flex items-center gap-2 text-gray-600">
@@ -136,7 +125,6 @@ export const IncidentDetail: React.FC = () => {
               </div>
             </div>
           </div>
-
           {/* Admin Comment */}
           {incident.adminComment && (
             <Alert>
@@ -148,7 +136,6 @@ export const IncidentDetail: React.FC = () => {
           )}
         </CardContent>
       </Card>
-
       {/* Location */}
       <Card>
         <CardHeader>
@@ -169,14 +156,12 @@ export const IncidentDetail: React.FC = () => {
                 <p className="text-gray-900">{incident.location.lng.toFixed(6)}</p>
               </div>
             </div>
-            
             {incident.location.address && (
               <div>
                 <p className="text-sm text-gray-500">Address</p>
                 <p className="text-gray-900">{incident.location.address}</p>
               </div>
             )}
-
             {/* Map Display */}
             <div className="relative w-full h-96 bg-gradient-to-br from-blue-100 via-green-50 to-yellow-50 rounded-lg border-2 border-gray-300 overflow-hidden">
               {/* Marker */}
@@ -189,7 +174,6 @@ export const IncidentDetail: React.FC = () => {
               >
                 <MapPin className="w-8 h-8 text-red-600 fill-red-500" />
               </div>
-              
               {/* Coordinates display */}
               <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-60 text-white px-4 py-2 text-sm">
                 <div className="flex justify-between items-center">
@@ -203,7 +187,6 @@ export const IncidentDetail: React.FC = () => {
           </div>
         </CardContent>
       </Card>
-
       {/* Media */}
       {incident.media.length > 0 && (
         <Card>
