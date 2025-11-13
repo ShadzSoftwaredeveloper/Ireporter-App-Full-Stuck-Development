@@ -383,4 +383,4 @@ router.get('/user/:userId', authenticateToken, async (req, res) => {
   }
 });
 
-export default router;
+export default router
