@@ -82,12 +82,9 @@ export const ViewIncidents: React.FC = () => {
     });
   };
 
-  const handleDeleteClick = (e: React.MouseEvent<HTMLButtonElement>, incidentId: string) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIncidentToDelete(incidentId);
-    setDeleteDialogOpen(true);
-  };
+  // Open delete confirmation for a specific incident
+  // We set the incident id and open the dialog directly from the button handlers
+  // to avoid creating inline typed event handlers that can trigger lint/TS issues.
 
   const confirmDelete = async () => {
     if (incidentToDelete) {
@@ -290,7 +287,7 @@ export const ViewIncidents: React.FC = () => {
                       variant="destructive"
                       size="icon"
                       className="absolute top-2 right-2 z-10"
-                      onClick={(e) => handleDeleteClick(e, incident.id)}
+                      onClick={() => { setIncidentToDelete(incident.id); setDeleteDialogOpen(true); }}
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>
@@ -374,7 +371,7 @@ export const ViewIncidents: React.FC = () => {
                       variant="destructive"
                       size="sm"
                       className="absolute top-2 right-2 z-10 gap-2"
-                      onClick={(e) => handleDeleteClick(e, incident.id)}
+                      onClick={() => { setIncidentToDelete(incident.id); setDeleteDialogOpen(true); }}
                     >
                       <Trash2 className="w-4 h-4" />
                       <span className="hidden sm:inline">Delete</span>
