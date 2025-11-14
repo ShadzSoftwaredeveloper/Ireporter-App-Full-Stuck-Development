@@ -203,34 +203,7 @@ router.get('/', authenticateToken, async (req, res) => {
   }
 });
 
-// Get single incident by id
-router.get('/:id', authenticateToken, async (req, res) => {
-  const incidentId = req.params.id;
-  try {
-    const connection = await pool.getConnection();
-    try {
-      const [incidents] = await connection.execute('SELECT i.*, u.name as user_name, u.email as user_email FROM incidents i LEFT JOIN users u ON i.user_id = u.id WHERE i.id = ?', [incidentId]);
-      if (incidents.length === 0) {
-        connection.release();
-        return res.status(404).json({ error: 'Incident not found' });
-      }
-
-      const incident = incidents[0];
-      const [mediaFiles] = await connection.execute('SELECT id, type, url, thumbnail FROM media_files WHERE incident_id = ?', [incidentId]);
-      incident.media = mediaFiles;
-      connection.release();
-      res.json(incident);
-    } catch (err) {
-      connection.release();
-      throw err;
-    }
-  } catch (error) {
-    console.error('Get incident by id error:', error);
-    res.status(500).json({ error: 'Failed to fetch incident' });
-  }
-});
-
-// Get user's incidents
+// Get user's incidents (must come BEFORE /:id to avoid matching it)
 router.get('/user/:userId', authenticateToken, async (req, res) => {
   const userId = req.params.userId;
   try {
@@ -256,6 +229,33 @@ router.get('/user/:userId', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Get user incidents error:', error);
     res.status(500).json({ error: 'Failed to fetch user incidents' });
+  }
+});
+
+// Get single incident by id
+router.get('/:id', authenticateToken, async (req, res) => {
+  const incidentId = req.params.id;
+  try {
+    const connection = await pool.getConnection();
+    try {
+      const [incidents] = await connection.execute('SELECT i.*, u.name as user_name, u.email as user_email FROM incidents i LEFT JOIN users u ON i.user_id = u.id WHERE i.id = ?', [incidentId]);
+      if (incidents.length === 0) {
+        connection.release();
+        return res.status(404).json({ error: 'Incident not found' });
+      }
+
+      const incident = incidents[0];
+      const [mediaFiles] = await connection.execute('SELECT id, type, url, thumbnail FROM media_files WHERE incident_id = ?', [incidentId]);
+      incident.media = mediaFiles;
+      connection.release();
+      res.json(incident);
+    } catch (err) {
+      connection.release();
+      throw err;
+    }
+  } catch (error) {
+    console.error('Get incident by id error:', error);
+    res.status(500).json({ error: 'Failed to fetch incident' });
   }
 });
 
