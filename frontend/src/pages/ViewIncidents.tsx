@@ -136,9 +136,20 @@ export const ViewIncidents: React.FC = () => {
             Browse and track all reported incidents
           </p>
         </div>
-        <Link to="/create">
-          <Button>Create New Incident</Button>
-        </Link>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="gap-2"
+          >
+            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+          <Link to="/create">
+            <Button>Create New Incident</Button>
+          </Link>
+        </div>
       </div>
 
       {/* Filters */}
@@ -275,6 +286,13 @@ export const ViewIncidents: React.FC = () => {
                             {incident.media.length > 3 && (
                               <div className="w-16 h-16 bg-gray-100 rounded flex items-center justify-center text-sm text-gray-600">
                                 +{incident.media.length - 3}
+                              </div>
+                            )}
+                            {media.type === 'video' && (
+                              <div className="w-full h-full bg-gray-800 flex items-center justify-center">
+                                <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
+                                  <div className="w-0 h-0 border-l-[8px] border-l-gray-900 border-y-[6px] border-y-transparent ml-1"></div>
+                                </div>
                               </div>
                             )}
                           </div>

@@ -19,7 +19,6 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { toast } from 'sonner';
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 
 export const UserProfile: React.FC = () => {
   const { user, updateProfile } = useAuth();
@@ -32,36 +31,29 @@ export const UserProfile: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [error, setError] = useState('');
-  const [fetchingIncidents, setFetchingIncidents] = useState(false);
   const [userIncidents, setUserIncidents] = useState<any[]>([]);
+  const [incidentsLoading, setIncidentsLoading] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const fetchUserIncidents = async () => {
-      if (!user?.id) return;
-      try {
-        setFetchingIncidents(true);
-        const incidents = await getUserIncidents(user.id);
-        setUserIncidents(incidents || []);
-      } catch (err) {
-        console.error('Error fetching user incidents:', err);
-        toast.error('Failed to fetch your incidents');
-        setUserIncidents([]);
-      } finally {
-        setFetchingIncidents(false);
+      if (user) {
+        try {
+          console.log('📥 Fetching user incidents for:', user.id);
+          const incidents = await getUserIncidents(user.id);
+          console.log('✅ User incidents:', incidents);
+          setUserIncidents(incidents);
+        } catch (error) {
+          console.error('❌ Error fetching user incidents:', error);
+          toast.error('Failed to load incidents');
+        } finally {
+          setIncidentsLoading(false);
+        }
       }
     };
 
     fetchUserIncidents();
-  }, [user?.id, getUserIncidents]);
-
-  // Keep a local profilePictureSrc in sync with the auth user so the avatar
-  // updates immediately when the backend returns the updated user.
-  // Use this to trigger key change on Avatar component to force re-render.
-  useEffect(() => {
-    const pic = (user as any)?.profile_picture || '';
-    setProfilePictureSrc(pic);
-  }, [user?.profile_picture]);
+  }, [user, getUserIncidents]);
 
   const stats = useMemo(() => {
     const resolved = userIncidents.filter(i => i.status === 'resolved').length;
@@ -98,13 +90,11 @@ export const UserProfile: React.FC = () => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
 
-    // Check file size (limit to 500KB for upload)
-    if (file.size > 500 * 1024) {
-      toast.error('Image size must be less than 500KB');
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('Image size must be less than 2MB');
       return;
     }
 
-    // Check file type
     if (!file.type.startsWith('image/')) {
       toast.error('Please upload an image file');
       return;
@@ -145,7 +135,6 @@ export const UserProfile: React.FC = () => {
       setUploadingImage(false);
     }
 
-    // Reset file input
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -154,13 +143,11 @@ export const UserProfile: React.FC = () => {
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Check file size (limit to 500KB for upload)
-      if (file.size > 500 * 1024) {
-        setError('Image size must be less than 500KB');
+      if (file.size > 2 * 1024 * 1024) {
+        setError('Image size must be less than 2MB');
         return;
       }
 
-      // Check file type
       if (!file.type.startsWith('image/')) {
         setError('Please upload an image file');
         return;
@@ -224,14 +211,12 @@ export const UserProfile: React.FC = () => {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
-      {/* Header */}
       <div>
         <h1 className="text-gray-900 mb-2">User Profile</h1>
         <p className="text-gray-600">Manage your account and view your incident reports</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Profile Info */}
         <div className="lg:col-span-1">
           <Card>
             <CardHeader>
@@ -309,9 +294,7 @@ export const UserProfile: React.FC = () => {
           </Card>
         </div>
 
-        {/* Stats and Activity */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Statistics */}
           <div>
             <h2 className="text-gray-900 mb-4">Report Statistics</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -354,7 +337,6 @@ export const UserProfile: React.FC = () => {
             </div>
           </div>
 
-          {/* Recent Activity */}
           <div>
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-gray-900">Recent Reports</h2>
@@ -365,12 +347,10 @@ export const UserProfile: React.FC = () => {
             
             <Card>
               <CardContent className="p-0">
-                {fetchingIncidents ? (
-                  <div className="flex items-center justify-center py-12">
-                    <div className="text-center">
-                      <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2 text-blue-600" />
-                      <p className="text-gray-600">Loading your incidents...</p>
-                    </div>
+                {incidentsLoading ? (
+                  <div className="p-8 text-center text-gray-500">
+                    <div className="w-8 h-8 border-2 border-red-600 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+                    <p>Loading incidents...</p>
                   </div>
                 ) : recentIncidents.length > 0 ? (
                   <div className="divide-y">
@@ -427,7 +407,6 @@ export const UserProfile: React.FC = () => {
         </div>
       </div>
 
-      {/* Edit Profile Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>

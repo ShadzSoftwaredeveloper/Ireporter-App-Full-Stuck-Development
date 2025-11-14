@@ -5,8 +5,8 @@ interface User {
   email: string;
   name: string;
   role: 'user' | 'admin';
-  profile_picture?: string;
-  created_at: string;
+  profilePicture?: string;
+  createdAt: string;
 }
 
 interface AuthContextType {
@@ -42,11 +42,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    // Check if user is authenticated by verifying token with backend
-    const token = localStorage.getItem('token');
-    if (token) {
-      verifyToken();
-    }
+    const verifyToken = async () => {
+      const token = localStorage.getItem('token');
+      if (token) {
+        await verifyToken();
+      }
+    };
+    verifyToken();
   }, []);
 
   const verifyToken = async () => {
@@ -59,14 +61,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       if (response.ok) {
         const userData = await response.json();
-        setUser(userData);
+        console.log('✅ User profile fetched:', userData);
+        const transformedUser: User = {
+          id: userData.id.toString(),
+          email: userData.email,
+          name: userData.name,
+          role: userData.role,
+          profilePicture: userData.profile_picture,
+          createdAt: userData.created_at
+        };
+        setUser(transformedUser);
       } else {
-        // Token is invalid, clear it
+        console.log('❌ Token invalid, clearing storage');
         localStorage.removeItem('token');
         setUser(null);
       }
     } catch (error) {
-      console.error('Token verification failed:', error);
+      console.error('❌ Token verification failed:', error);
       localStorage.removeItem('token');
       setUser(null);
     }
@@ -114,9 +125,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     const data = await response.json();
     
-    // Store token for future requests
     localStorage.setItem('token', data.token);
-    setUser(data.user);
+    
+    const transformedUser: User = {
+      id: data.user.id.toString(),
+      email: data.user.email,
+      name: data.user.name,
+      role: data.user.role,
+      profilePicture: data.user.profile_picture,
+      createdAt: data.user.created_at
+    };
+    
+    setUser(transformedUser);
   };
 
   const signUp = async (email: string, password: string, name: string, role: 'user' | 'admin' = 'user'): Promise<{ message: string; email: string }> => {
@@ -153,9 +173,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     const data = await response.json();
     
-    // Store token for future requests
     localStorage.setItem('token', data.token);
-    setUser(data.user);
+    
+    const transformedUser: User = {
+      id: data.user.id.toString(),
+      email: data.user.email,
+      name: data.user.name,
+      role: data.user.role,
+      profilePicture: data.user.profile_picture,
+      createdAt: data.user.created_at
+    };
+    
+    setUser(transformedUser);
   };
 
   const signOut = () => {
@@ -164,9 +193,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const updateProfile = async (name: string, email: string, profilePicture?: string) => {
+    console.log('🔄 Updating profile:', { name, email, profilePicture });
+    
+    const headers = getAuthHeaders();
     const response = await fetch(`${API_BASE_URL}/users/profile`, {
       method: 'PUT',
-      headers: getAuthHeaders(),
+      headers: headers,
       body: JSON.stringify({ 
         name, 
         email, 
@@ -180,13 +212,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
 
     const updatedUser = await response.json();
-    setUser(updatedUser);
+    console.log('✅ Profile updated successfully:', updatedUser);
+    
+    const transformedUser: User = {
+      id: updatedUser.id.toString(),
+      email: updatedUser.email,
+      name: updatedUser.name,
+      role: updatedUser.role,
+      profilePicture: updatedUser.profile_picture,
+      createdAt: updatedUser.created_at
+    };
+    
+    setUser(transformedUser);
   };
 
   const deleteUser = async (userId: string) => {
+    const headers = getAuthHeaders();
     const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
       method: 'DELETE',
-      headers: getAuthHeaders(),
+      headers: headers,
     });
 
     if (!response.ok) {
@@ -196,15 +240,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const getAllUsers = async (): Promise<User[]> => {
+    const headers = getAuthHeaders();
     const response = await fetch(`${API_BASE_URL}/users`, {
-      headers: getAuthHeaders(),
+      headers: headers,
     });
 
     if (!response.ok) {
       throw new Error('Failed to fetch users');
     }
 
-    return await response.json();
+    const users = await response.json();
+    return users.map((userData: any) => ({
+      id: userData.id.toString(),
+      email: userData.email,
+      name: userData.name,
+      role: userData.role,
+      profilePicture: userData.profile_picture,
+      createdAt: userData.created_at
+    }));
   };
 
   return (
