@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { NotificationDropdown } from './NotificationDropdown';
 import { useNotifications } from '../contexts/NotificationContext';
 import { Badge } from './ui/badge';
+import { getMediaUrl } from '../config/api';
 import {
   Sidebar,
   SidebarContent,
@@ -120,7 +121,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             {user && (
               <Link to="/profile" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
                 <Avatar className="w-8 h-8">
-                  <AvatarImage src={user.profilePicture} alt={user.name} />
+                  <AvatarImage src={getMediaUrl(user.profilePicture || '')} alt={user.name} />
                   <AvatarFallback className="bg-red-100 text-red-600 dark:bg-red-900 dark:text-red-300 text-xs">
                     {getInitials(user.name)}
                   </AvatarFallback>
