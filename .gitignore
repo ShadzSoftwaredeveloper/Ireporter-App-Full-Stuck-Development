@@ -9,6 +9,7 @@ ireporter App fullstuck development by shadz.zip
 
 # Ignore uploads folder
 upload/
+Profil/
 
 # Ignore environment files
 
