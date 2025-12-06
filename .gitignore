@@ -5,7 +5,7 @@ node_modules/
 qodo/
 
 # Ignore the full project zip files
-ireporter App fullstuck development by shadz.zip/
+ireporter App fullstuck development by shadz.zip
 
 # Ignore uploads folder
 upload/
