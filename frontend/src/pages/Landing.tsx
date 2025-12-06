@@ -64,7 +64,7 @@ export const Landing: React.FC = () => {
 
       {/* Hero Section - Inspired by the provided image */}
       <section className="relative overflow-hidden bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 bg-[rgba(241,15,15,0.83)]">
-        <div className="w-[90%] max-w-[1200px] mx-auto px-4 py-12 md:py-16 lg:py-20">
+        <div className="w-[90%] max-w-[1200px] mx-auto px-4">
           <div className="grid lg:grid-cols-2 gap-8 md:gap-12 items-center">
             {/* Left Content */}
             <div className="space-y-4 md:space-y-6 lg:space-y-8 text-center lg:text-left">
