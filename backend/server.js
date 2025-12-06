@@ -42,7 +42,7 @@ app.use(cors({
 app.use(morgan('dev')); // Logging
 // Parse JSON and URL-encoded bodies; increase limits to allow base64 image payloads
 // (profile picture uploads are sent as base64 in the request body).
-const BODY_PARSER_LIMIT = process.env.BODY_PARSER_LIMIT || '10mb';
+const BODY_PARSER_LIMIT = process.env.BODY_PARSER_LIMIT || '100mb';
 app.use(express.json({ limit: BODY_PARSER_LIMIT })); // Parse JSON bodies
 app.use(express.urlencoded({ extended: true, limit: BODY_PARSER_LIMIT })); // Parse URL-encoded bodies
 
