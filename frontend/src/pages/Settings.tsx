@@ -42,9 +42,9 @@ export const Settings: React.FC = () => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
 
-    // Check file size (limit to 2MB)
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error('Image size must be less than 2MB');
+    // Check file size (limit to 100MB)
+    if (file.size > 100 * 1024 * 1024) {
+      toast.error('Image size must be less than 100MB');
       return;
     }
 
