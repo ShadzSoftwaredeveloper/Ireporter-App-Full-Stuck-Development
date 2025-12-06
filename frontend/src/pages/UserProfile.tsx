@@ -17,7 +17,7 @@ import {
 } from '../components/ui/dialog';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 import { API_ENDPOINTS, getAuthHeaders, getMediaUrl } from '../config/api';
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
@@ -74,9 +74,9 @@ export const UserProfile: React.FC = () => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
 
-    // Check file size (limit to 2MB)
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error('Image size must be less than 2MB');
+    // Check file size (limit to 100MB)
+    if (file.size > 100 * 1024 * 1024) {
+      toast.error('Image size must be less than 100MB');
       return;
     }
 
@@ -114,9 +114,9 @@ export const UserProfile: React.FC = () => {
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Check file size (limit to 2MB)
-      if (file.size > 2 * 1024 * 1024) {
-        setError('Image size must be less than 2MB');
+      // Check file size (limit to 100MB)
+      if (file.size > 100 * 1024 * 1024) {
+        setError('Image size must be less than 100MB');
         return;
       }
 
@@ -167,7 +167,8 @@ export const UserProfile: React.FC = () => {
         const uploaded = uploadData?.data?.files?.[0];
         if (!uploaded) throw new Error('Upload returned no file info');
 
-        profilePictureValue = uploaded.url; // e.g. '/uploads/filename.ext'
+        // Store only the filename, not the full path - getMediaUrl() will reconstruct the full URL
+        profilePictureValue = uploaded.filename || uploaded.url;
       }
 
       await updateProfile(editName, editEmail, profilePictureValue);
@@ -236,7 +237,7 @@ export const UserProfile: React.FC = () => {
                     className="relative block focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 rounded-full"
                   >
                     <Avatar className="w-16 h-16">
-                      <AvatarImage src={user.profilePicture} alt={user.name} />
+                      <AvatarImage src={getMediaUrl(user.profilePicture || '')} alt={user.name} />
                       <AvatarFallback className="bg-red-100 text-red-600">
                         {getInitials(user.name)}
                       </AvatarFallback>
@@ -442,7 +443,7 @@ export const UserProfile: React.FC = () => {
               <div className="col-span-3">
                 <div className="flex items-center gap-2">
                   <Avatar className="w-10 h-10">
-                    <AvatarImage src={editProfilePicture} alt={editName} />
+                    <AvatarImage src={editProfilePicture.startsWith('data:') ? editProfilePicture : getMediaUrl(editProfilePicture)} alt={editName} />
                     <AvatarFallback className="bg-red-100 text-red-600">
                       {getInitials(editName)}
                     </AvatarFallback>
