@@ -1,5 +1,6 @@
 {
       "name": "Full-Stack Incident Reporting Application developed by shadz-dev",
+      "name": "Full-Stack Incident Reporting Application",
       "version": "0.1.0",
       "private": true,
       "dependencies": {
