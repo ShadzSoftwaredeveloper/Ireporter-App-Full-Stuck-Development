@@ -1,6 +1,6 @@
 # Quick Start Guide
 
-## 🚀 Get Started in 5 Minutes
+
 
 ### Step 1: Install Dependencies (1 min)
 
@@ -10,10 +10,7 @@ npm install
 
 ### Step 2: Set Up Environment (2 min)
 
-```bash
-# Copy example env file
-cp .env.example .env
-```
+
 
 **Edit `.env` with YOUR credentials:**
 
@@ -84,14 +81,7 @@ Your backend is now running and ready to connect with the frontend!
 
 ---
 
-## 📧 Need Email Testing?
 
-### Mailtrap (Easiest - Recommended)
-1. Go to [mailtrap.io](https://mailtrap.io)
-2. Sign up (free)
-3. Create inbox
-4. Copy SMTP credentials
-5. Paste into `.env`
 
 All emails will be caught by Mailtrap - perfect for testing!
 
@@ -110,12 +100,7 @@ Change port in `.env`:
 PORT=8000
 ```
 
-### Email not working?
-- Check Mailtrap credentials
-- Verify `EMAIL_SERVICE=smtp` is set
-- Look for error messages in console
 
----
 
 ## 📚 Full Documentation
 
@@ -125,7 +110,7 @@ PORT=8000
 
 ---
 
-## 🎉 Next Steps
+## Next Steps
 
 1. ✅ Backend is running
 2. 🔄 Start the frontend: `cd .. && npm run dev`
@@ -135,4 +120,3 @@ PORT=8000
 
 ---
 
-**Ready to provide credentials?** Just paste them in the `.env` file and run `npm run dev`!

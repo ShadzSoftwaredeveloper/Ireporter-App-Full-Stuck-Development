@@ -12,7 +12,6 @@ Backend API for the Incident Reporting Application built with Express.js, MySQL,
 - **Security**: Helmet.js, CORS, password hashing with bcrypt
 - **API Documentation**: RESTful API with clear endpoint structure
 
-## 🚀 Quick Start
 
 ### Prerequisites
 
@@ -33,9 +32,7 @@ Backend API for the Incident Reporting Application built with Express.js, MySQL,
    ```
 
 3. **Set up environment variables**
-   ```bash
-   cp .env.example .env
-   ```
+   
    
    Edit `.env` file with your database and email credentials.
 
@@ -155,7 +152,6 @@ SMTP_PASSWORD=your_mailtrap_password
 EMAIL_FROM=noreply@incidentreporting.com
 ```
 
-Get free Mailtrap credentials at [mailtrap.io](https://mailtrap.io)
 
 ### Option 4: Custom SMTP
 
@@ -168,7 +164,7 @@ SMTP_PASSWORD=your_smtp_password
 EMAIL_FROM=noreply@yourdomain.com
 ```
 
-## 🔐 API Endpoints
+##  API Endpoints
 
 ### Authentication
 - `POST /api/auth/signup` - Register new user
@@ -199,7 +195,7 @@ EMAIL_FROM=noreply@yourdomain.com
 - `GET /api/health` - Server health check
 - `GET /` - API information
 
-## 🔑 Authentication
+## Authentication
 
 The API uses JWT (JSON Web Tokens) for authentication.
 
@@ -240,7 +236,6 @@ fetch('http://localhost:5000/api/incidents', {
 - Receives notifications when new incidents are created
 - Can manage users
 
-## 📝 Example API Usage
 
 ### 1. Register a new user
 
@@ -304,7 +299,7 @@ curl -X PUT http://localhost:5000/api/incidents/INCIDENT_ID \
   }'
 ```
 
-## 🛡️ Security Features
+## Security Features
 
 - **Password Hashing**: Passwords are hashed using bcryptjs
 - **JWT Authentication**: Secure token-based authentication
@@ -313,7 +308,7 @@ curl -X PUT http://localhost:5000/api/incidents/INCIDENT_ID \
 - **Input Validation**: Request validation using express-validator
 - **Role-Based Access Control**: Different permissions for users and admins
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 backend/
@@ -344,7 +339,7 @@ backend/
 └── server.js                # Express app & server
 ```
 
-## 🔄 Email Notification Flow
+## Email Notification Flow
 
 ### When User Creates Incident:
 1. Incident is saved to database
@@ -358,7 +353,7 @@ backend/
 3. Email sent to incident owner with status update
 4. User receives in-app notification
 
-## 🧪 Testing Email Configuration
+##  Testing Email Configuration
 
 You can test if your email configuration is working by checking the server logs when:
 1. A user creates an incident (admins should receive emails)
@@ -395,7 +390,7 @@ For issues or questions:
 3. Test email configuration
 4. Ensure all environment variables are set correctly
 
-## 📄 License
+##  License
 
 ISC
 
