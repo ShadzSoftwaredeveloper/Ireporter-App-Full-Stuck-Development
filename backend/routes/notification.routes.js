@@ -14,8 +14,8 @@ router.use(verifyToken);
 
 router.get('/', getNotifications);
 router.get('/unread-count', getUnreadCount);
-router.put('/mark-all-read', markAllAsRead);
-router.put('/:id/read', markAsRead);
+router.patch('/mark-all-read', markAllAsRead);
+router.patch('/:id/read', markAsRead);
 router.delete('/:id', deleteNotification);
 
 module.exports = router;
