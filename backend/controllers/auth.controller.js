@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
-const usersDal = require('../dal/users');
+const usersDal = require('../repositories/users');
 
 // Generate JWT token
 const generateToken = (userId) => {
