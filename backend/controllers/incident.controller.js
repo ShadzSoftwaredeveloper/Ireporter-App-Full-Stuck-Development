@@ -1,7 +1,7 @@
-const incidentsDal = require('../dal/incidents');
-const usersDal = require('../dal/users');
-const notificationsDal = require('../dal/notifications');
-const { query } = require('../db');
+const incidentsDal = require('../repositories/incidents');
+const usersDal = require('../repositories/users');
+const notificationsDal = require('../repositories/notifications');
+const { query } = require('../database');
 const emailService = require('../utils/emailService');
 
 // @route   POST /api/incidents
