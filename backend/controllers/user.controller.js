@@ -1,4 +1,4 @@
-const usersDal = require('../dal/users');
+const usersDal = require('../repositories/users');
 
 // GET /api/users/profile
 async function getProfile(req, res) {
