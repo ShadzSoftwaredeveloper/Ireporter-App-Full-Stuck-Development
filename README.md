@@ -47,7 +47,7 @@ SOFTWARE.
 
 
 
-"# co-ireporter" 
+"#ireporter_App" 
 
 updated,signup,signin,
 AuthContext in fron and datacontext
@@ -61,7 +61,7 @@ Incident Model & CRUD (Part 1) Create Incident model with id, type, title, descr
 location, status, images, createdBy, timestamps. Implement Create Incident endpoint with 
 validation and file upload restrictions. Configure Multer middleware
 
-Day 3 – Database Design Design MySQL database schema: Users, Roles, Incidents,
+ Database Design Design MySQL database schema: Users, Roles, Incidents,
 Files, OTPs. Set up database connection in JavaScript. Create migration or SQL
 script for initial tables.
 
