@@ -9,7 +9,7 @@ const path = require('path');
 dotenv.config();
 
 // Import database (mysql2) initializer
-const { initSchema } = require('./db/init');
+const { initSchema } = require('./database/init');
 
 // Import routes
 const authRoutes = require('./routes/auth.routes');
