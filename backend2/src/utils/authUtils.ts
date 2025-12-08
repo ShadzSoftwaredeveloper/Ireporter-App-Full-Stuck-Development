@@ -1,8 +1,9 @@
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
+import jwt, { Secret } from 'jsonwebtoken';
 import { UserRole } from '../types';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your_fallback_secret';
+// Use the `Secret` type from jsonwebtoken so TypeScript picks the correct overload
+const JWT_SECRET: Secret = (process.env.JWT_SECRET as Secret) || 'your_fallback_secret';
 
 export class AuthUtils {
   static async hashPassword(password: string): Promise<string> {
