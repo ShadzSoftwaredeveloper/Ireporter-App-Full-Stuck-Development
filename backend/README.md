@@ -1,3 +1,58 @@
+# Backend notes — SQL runner & schema updates
+
+This file documents two helper features in the `backend/` folder:
+
+- A small SQL runner that executes `backend/sql/init_full.sql` using the project's `.env` DB credentials.
+- A guarded one-time schema migration controlled by the `AUTO_UPDATE_SCHEMA` environment variable.
+
+Quick prerequisites
+- Ensure a MySQL server is running and reachable with credentials in `backend/.env`.
+- Node.js is required to run the provided helper scripts.
+
+Run the SQL runner
+
+The runner executes `backend/sql/init_full.sql` (contains DDL and seed data).
+
+PowerShell (recommended):
+```
+cd c:\Users\USER\co-ireporter\backend
+node .\scripts\run_sql_file.js
+```
+
+If you prefer the `mysql` CLI you can run the SQL file directly (adjust user/host as needed):
+```
+mysql -u root -p < backend/sql/init_full.sql
+```
+
+Notes about the SQL runner
+- The runner reads DB credentials from `backend/.env` via `dotenv`.
+- The script uses `multipleStatements` to execute the file in one go — be careful when editing the file.
+- Some inserts in the file are idempotent (use `ON DUPLICATE KEY UPDATE`) to allow safe re-runs.
+
+Enable guarded one-time ALTER migrations
+
+The server includes optional ALTER statements (for older DB schemas) that run only when explicitly enabled.
+To enable them for a maintenance run set `AUTO_UPDATE_SCHEMA=true` in `backend/.env` (or as an environment variable) and start the server.
+
+PowerShell example (temporary for a single run):
+```
+$env:AUTO_UPDATE_SCHEMA = 'true'
+cd c:\Users\USER\co-ireporter\backend
+node server.js
+```
+
+Or add the line to `backend/.env`:
+```
+AUTO_UPDATE_SCHEMA=true
+```
+Then start normally (`node server.js` or `npm run dev`).
+
+Safety and recommendations
+- These migrations may ALTER table definitions; enable `AUTO_UPDATE_SCHEMA` only during a controlled maintenance window (staging/backup recommended).
+- After the migration runs successfully, unset `AUTO_UPDATE_SCHEMA` to avoid repeating schema changes on subsequent restarts.
+- If you prefer manual control, run the relevant `ALTER` statements from `backend/sql/fix_profile_picture_longtext.sql` (or split schema/seed files) instead of enabling automatic migrations.
+
+If you want, I can split the SQL into `schema.sql` and `seeds.sql`, and add npm scripts to run them separately. Just say so.
 # Incident Reporting Backend API
 
 Backend API for the Incident Reporting Application built with Express.js, MySQL, and Sequelize ORM.
