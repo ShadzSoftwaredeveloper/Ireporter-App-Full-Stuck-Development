@@ -9,7 +9,7 @@ const path = require('path');
 dotenv.config();
 
 // Import database (mysql2) initializer
-const { initSchema } = require('./db/init');
+const { initSchema } = require('./database/init');
 
 // Import routes
 const authRoutes = require('./routes/auth.routes');
@@ -42,7 +42,7 @@ app.use(cors({
 app.use(morgan('dev')); // Logging
 // Parse JSON and URL-encoded bodies; increase limits to allow base64 image payloads
 // (profile picture uploads are sent as base64 in the request body).
-const BODY_PARSER_LIMIT = process.env.BODY_PARSER_LIMIT || '10mb';
+const BODY_PARSER_LIMIT = process.env.BODY_PARSER_LIMIT || '100mb';
 app.use(express.json({ limit: BODY_PARSER_LIMIT })); // Parse JSON bodies
 app.use(express.urlencoded({ extended: true, limit: BODY_PARSER_LIMIT })); // Parse URL-encoded bodies
 
@@ -120,9 +120,9 @@ const startServer = async () => {
 
     // Start server
     app.listen(PORT, () => {
-      console.log(`🚀 Server is running on port ${PORT}`);
-      console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
-      console.log(`🔗 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:5173'}`);
+      console.log(`✅ Server is running on port ${PORT}`);
+      console.log(`✅ Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`✅ Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:5173'}`);
     });
   } catch (error) {
     console.error('❌ Unable to start server:', error);

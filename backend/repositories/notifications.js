@@ -1,4 +1,4 @@
-const { query } = require('../db');
+const { query } = require('../database');
 const { v4: uuidv4 } = require('uuid');
 
 async function create({ userId, incidentId, incidentTitle, type, message, oldStatus = null, newStatus = null }) {

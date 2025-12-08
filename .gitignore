@@ -6,9 +6,12 @@ qodo/
 
 # Ignore the full project zip files
 ireporter App fullstuck development by shadz.zip
+*.zip
 
 # Ignore uploads folder
+uploads/
 upload/
+Profil/
 
 # Ignore environment files
 
@@ -16,3 +19,5 @@ upload/
 hope/
 hope.zip/
 .env
+agents/
+.qodo

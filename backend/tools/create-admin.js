@@ -2,7 +2,7 @@
 const dotenv = require('dotenv');
 dotenv.config();
 
-const usersDal = require('../dal/users');
+const usersDal = require('../repositories/users');
 
 const [, , email, password, nameArg] = process.argv;
 

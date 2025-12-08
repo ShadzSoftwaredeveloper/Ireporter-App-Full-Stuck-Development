@@ -143,7 +143,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         throw new Error((data && data.message) || 'Update failed');
       }
 
-      setUser(data?.data?.user ?? null);
+      // Update user in state - response has { status, message, data: { user: updated } }
+      const updatedUser = data?.data?.user;
+      if (updatedUser) {
+        setUser(updatedUser);
+      }
     } catch (error: any) {
       const msg = error instanceof Error ? error.message : String(error) || 'Failed to update profile';
       throw new Error(msg);

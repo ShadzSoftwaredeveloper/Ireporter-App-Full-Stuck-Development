@@ -36,15 +36,23 @@ async function initSchema() {
         await conn.query(`ALTER TABLE Incidents ADD COLUMN media JSON NULL`);
       }
 
-      // Ensure Users.profilePicture is TEXT (to allow long base64 or URL strings).
+      // Ensure Users.profilePicture is LONGTEXT (to allow long base64 or URL strings).
       const [profilePicInfo] = await conn.query(
         `SELECT COLUMN_TYPE, DATA_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'Users' AND COLUMN_NAME = 'profilePicture'`
       );
       if (profilePicInfo && profilePicInfo[0]) {
-        const dataType = profilePicInfo[0].DATA_TYPE;
-        if (dataType !== 'text') {
-          console.log('⚠️ Altering Users.profilePicture column to TEXT to support large values');
-          await conn.query('ALTER TABLE Users MODIFY COLUMN `profilePicture` TEXT NULL');
+        const dataType = profilePicInfo[0].DATA_TYPE?.toLowerCase();
+        const columnType = profilePicInfo[0].COLUMN_TYPE?.toLowerCase();
+        // Force upgrade to LONGTEXT to handle any size of data
+        const needsUpgrade = !dataType?.includes('text') || dataType === 'text' || columnType?.startsWith('varchar') || columnType?.startsWith('blob');
+        if (needsUpgrade) {
+          console.log(`⚠️ Altering Users.profilePicture column from ${columnType} to LONGTEXT to support large values`);
+          try {
+            await conn.query('ALTER TABLE Users MODIFY COLUMN `profilePicture` LONGTEXT NULL');
+            console.log('✅ Successfully altered profilePicture column to LONGTEXT');
+          } catch (alterErr) {
+            console.error('⚠️ Failed to alter profilePicture column:', alterErr.message);
+          }
         }
       }
 

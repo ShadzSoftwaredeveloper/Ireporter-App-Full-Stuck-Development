@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { AlertCircle, Flag, MapPin, Camera, TrendingUp, Users, FileText, Apple, Smartphone } from 'lucide-react';
-import { ImageWithFallback } from '../components/figma/ImageWithFallback';
+import { ImageWithFallback } from '../components/fallback/ImageWithFallback';
 import heroImage from 'figma:asset/3e90d8aa38a951664e37e44868034fce4e9ef44d.png';
 import { toast } from 'sonner';
 

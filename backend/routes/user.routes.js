@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const usersDal = require('../dal/users');
+const usersDal = require('../repositories/users');
 const { verifyToken, isAdmin } = require('../middleware/auth.middleware');
 
 // @route   GET /api/users
@@ -8,7 +8,7 @@ const { verifyToken, isAdmin } = require('../middleware/auth.middleware');
 // @access  Private (admin)
 router.get('/', verifyToken, isAdmin, async (req, res) => {
   try {
-    const users = await require('../db').query(`SELECT id, email, name, role, profilePicture, createdAt, updatedAt FROM Users ORDER BY createdAt DESC`);
+    const users = await require('../database').query(`SELECT id, email, name, role, profilePicture, createdAt, updatedAt FROM Users ORDER BY createdAt DESC`);
 
     res.json({
       status: 'success',
@@ -47,7 +47,7 @@ router.delete('/:id', verifyToken, isAdmin, async (req, res) => {
       });
     }
 
-    await require('../db').query(`DELETE FROM Users WHERE id = ?`, [req.params.id]);
+    await require('../database').query(`DELETE FROM Users WHERE id = ?`, [req.params.id]);
 
     res.json({
       status: 'success',
