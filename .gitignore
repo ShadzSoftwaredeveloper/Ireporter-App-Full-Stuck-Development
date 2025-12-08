@@ -21,3 +21,15 @@ hope.zip/
 .env
 agents/
 .qodo
+
+# Vite / build artifacts
+frontend/build/
+frontend/node_modules/
+frontend/.vite/
+
+# Backend node modules
+backend/node_modules/
+
+# OS files
+.DS_Store
+Thumbs.db
