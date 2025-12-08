@@ -4,7 +4,7 @@ const { Sequelize } = require('sequelize');
 const sequelize = new Sequelize(
   process.env.DB_NAME || 'ireports_db',
   process.env.DB_USER || 'root',
-  process.env.DB_PASSWORD || 'Pray3rworks@22',
+  process.env.DB_PASSWORD || 'Love123',
   {
     host: process.env.DB_HOST || 'localhost',
     port: process.env.DB_PORT || 3306,
