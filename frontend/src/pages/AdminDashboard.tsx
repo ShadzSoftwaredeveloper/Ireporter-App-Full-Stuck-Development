@@ -14,7 +14,7 @@ import { Alert, AlertDescription } from '../components/ui/alert';
 import { IncidentStatus, Incident, User } from '../types';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { FileText, CheckCircle, Clock, XCircle, AlertTriangle, Trash2, Users as UsersIcon, Bell, Eye } from 'lucide-react';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 
 export const AdminDashboard: React.FC = () => {
   const { user, deleteUser, getAllUsers } = useAuth();
@@ -128,11 +128,6 @@ export const AdminDashboard: React.FC = () => {
         setDeleteIncidentDialogOpen(false);
         setIncidentToDelete(null);
         toast.success('Incident deleted successfully');
-        addNotification({
-          title: 'Incident Deleted',
-          message: `Incident \"${incidentToDelete.title}\" deleted successfully`,
-          type: 'success',
-        });
       } catch (error) {
         toast.error('Failed to delete incident');
       }
@@ -147,11 +142,6 @@ export const AdminDashboard: React.FC = () => {
         setAllUsers((prev) => prev.filter((u) => u.id !== userToDelete.id));
         setUserToDelete(null);
         toast.success(`User "${userToDelete.name}" deleted successfully`);
-        addNotification({
-          title: 'User Deleted',
-          message: `User "${userToDelete.name}" deleted successfully`,
-          type: 'success',
-        });
       } catch (error) {
         toast.error(error instanceof Error ? error.message : 'Failed to delete user');
       }
