@@ -1,6 +1,6 @@
-const incidentsDal = require('../repositories/incidents');
-const usersDal = require('../repositories/users');
-const notificationsDal = require('../repositories/notifications');
+const incidentsDal = require('../services/incidents');
+const usersDal = require('../services/users');
+const notificationsDal = require('../services/notifications');
 const { query } = require('../database');
 const emailService = require('../utils/emailService');
 

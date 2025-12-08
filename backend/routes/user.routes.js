@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const usersDal = require('../repositories/users');
+const usersDal = require('../services/users');
 const { verifyToken, isAdmin } = require('../middleware/auth.middleware');
 
 // @route   GET /api/users

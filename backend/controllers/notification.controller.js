@@ -1,4 +1,4 @@
-const notificationsDal = require('../repositories/notifications');
+const notificationsDal = require('../services/notifications');
 
 // @route   GET /api/notifications
 // @desc    Get all notifications for current user
