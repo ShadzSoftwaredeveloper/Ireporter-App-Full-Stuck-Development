@@ -197,8 +197,8 @@ export const Landing: React.FC = () => {
         </div>
       </section>
 
-      {/* Stats Section */}
-      {/* <section className="bg-gradient-to-br from-red-600 to-orange-600 py-16">
+      {/*Stats Section */}
+       <section className="bg-gradient-to-br from-red-600 to-orange-600 py-16">
         <div className="container mx-auto px-4">
           <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto text-center">
             <div>
@@ -215,7 +215,7 @@ export const Landing: React.FC = () => {
             </div>
           </div>
         </div>
-      </section> */}
+      </section> 
 
       {/* CTA Section */}
       {/* <section className="w-[90%] max-w-[1200px] mx-auto px-4 py-20">

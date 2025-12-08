@@ -8,7 +8,6 @@ import { Layout } from './components/Layout';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { PublicRoute } from './components/PublicRoute';
 import { Landing } from './pages/Landing';
-import { Welcome } from './pages/Welcome';
 import { SignIn } from './pages/SignIn';
 import { SignUp } from './pages/SignUp';
 import { CreateIncident } from './pages/CreateIncident';
@@ -117,7 +116,6 @@ const AppContent = () => {
         <Routes>
           {/* Public routes */}
           <Route path="/" element={<Landing />} />
-          <Route path="/welcome" element={<Welcome />} />
           <Route path="/signin" element={<SignIn />} />
           <Route path="/signup" element={<SignUp />} />
           
