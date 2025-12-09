@@ -17,7 +17,7 @@ async function getProfile(req, res) {
 // PUT /api/users/profile
 async function updateProfile(req, res) {
   try {
-    const { name, email, profile_picture } = req.body;
+    const { name, email, profilePicture, profile_picture } = req.body;
 
     const existing = await usersDal.findById(req.user.id);
     if (!existing) {
@@ -35,7 +35,7 @@ async function updateProfile(req, res) {
     const updated = await usersDal.updateProfile(req.user.id, {
       name: name !== undefined ? name : existing.name,
       email: email !== undefined ? email : existing.email,
-      profilePicture: profile_picture !== undefined ? profile_picture : existing.profilePicture,
+      profilePicture: (profilePicture !== undefined ? profilePicture : profile_picture) || existing.profilePicture,
     });
 
     res.json(updated);
