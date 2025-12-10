@@ -96,17 +96,17 @@ export const SignIn: React.FC = () => {
         localStorage.setItem('authToken', token);
         localStorage.setItem('user', JSON.stringify(user));
         
-        // Give the context a moment to update before navigating
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
         toast.success('Successfully signed in!');
         
-        // Navigate based on user role
-        if (user?.role === 'admin') {
-          navigate('/admin');
-        } else {
-          navigate('/incidents');
-        }
+        // Add a small delay to ensure context reads the localStorage
+        // then navigate based on user role
+        setTimeout(() => {
+          if (user?.role === 'admin') {
+            navigate('/admin');
+          } else {
+            navigate('/incidents');
+          }
+        }, 200);
       } else {
         throw new Error('No token or user received from server');
       }

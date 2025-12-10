@@ -33,7 +33,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  // Load user from token on mount
+  // Load user from token on mount and when localStorage changes
   useEffect(() => {
     const initializeAuth = async () => {
       const token = localStorage.getItem('authToken');
@@ -78,6 +78,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     };
 
     initializeAuth();
+    
+    // Listen for localStorage changes (e.g., from other tabs or OTP login)
+    const handleStorageChange = () => {
+      initializeAuth();
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
   const signIn = async (email: string, password: string) => {
