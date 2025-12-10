@@ -18,6 +18,7 @@ const notificationRoutes = require('./routes/notification.routes');
 const userRoutes = require('./routes/user.routes');
 const userProfileRoutes = require('./routes/user.profile.routes');
 const uploadRoutes = require('./routes/upload.routes');
+const otpRoutes = require('./routes/otp.routes');
 
 // Initialize Express app
 const app = express();
@@ -63,6 +64,7 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/users', userProfileRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/otp', otpRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

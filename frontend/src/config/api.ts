@@ -9,7 +9,11 @@ export const API_ENDPOINTS = {
 ME: `${API_BASE_URL}/api/auth/me`,
 // Profile (PUT) lives under auth controller as well
 PROFILE: `${API_BASE_URL}/api/auth/profile`,
-// Legacy / direct auth endpoints
+// Auth endpoints
+SIGNIN: `${API_BASE_URL}/api/auth/signin`,
+SIGNUP: `${API_BASE_URL}/api/auth/signup`,
+VERIFY_OTP: `${API_BASE_URL}/api/auth/verify-otp`,
+// Legacy
 LOGIN: `${API_BASE_URL}/api/auth/signin`,
 REGISTER: `${API_BASE_URL}/api/auth/signup`,
 

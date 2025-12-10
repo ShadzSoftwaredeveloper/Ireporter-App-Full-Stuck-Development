@@ -1,6 +1,8 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const usersDal = require('../services/users');
+const otpsService = require('../services/otps');
+const emailService = require('../services/emailService');
 
 // Generate JWT token
 const generateToken = (userId) => {
@@ -60,7 +62,7 @@ const signup = async (req, res) => {
 };
 
 // @route   POST /api/auth/signin
-// @desc    Login user with email/password (no OTP)
+// @desc    Request OTP for signin with email/password
 // @access  Public
 const signin = async (req, res) => {
   try {
@@ -89,6 +91,92 @@ const signin = async (req, res) => {
       });
     }
 
+    // Generate and send OTP
+    const generateOTP = () => {
+      return Math.floor(100000 + Math.random() * 900000).toString();
+    };
+    const code = generateOTP();
+    const expiresIn = 10 * 60 * 1000; // 10 minutes
+
+    // Save OTP to database
+    await otpsService.create(email, code, expiresIn);
+
+    // Send OTP via email
+    let emailSent = false;
+    try {
+      const transporter = emailService.createTransporter();
+      await transporter.sendMail({
+        from: process.env.EMAIL_USER,
+        to: email,
+        subject: 'Your iReporter Login OTP Code',
+        html: `
+          <h2>OTP Verification</h2>
+          <p>Your one-time password for login is:</p>
+          <h1 style="letter-spacing: 5px; font-weight: bold;">${code}</h1>
+          <p>This code will expire in 10 minutes.</p>
+          <p>Do not share this code with anyone.</p>
+        `
+      });
+      emailSent = true;
+    } catch (emailErr) {
+      console.error('Failed to send OTP email:', emailErr);
+      // Don't fail the request, just log the error
+    }
+
+    res.json({
+      status: 'success',
+      message: emailSent ? 'OTP sent to email. Please verify to complete login.' : 'OTP generated. Check your email or spam folder.',
+      data: {
+        email,
+        expiresIn
+      }
+    });
+  } catch (error) {
+    console.error('Signin error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Error signing in',
+      error: error.message
+    });
+  }
+};
+
+// @route   POST /api/auth/verify-otp
+// @desc    Verify OTP and complete login
+// @access  Public
+const verifyOTPAndLogin = async (req, res) => {
+  try {
+    const { email, code } = req.body;
+
+    if (!email || !code) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Email and OTP code are required'
+      });
+    }
+
+    // Verify OTP
+    const isValid = await otpsService.verify(email, code);
+    if (!isValid) {
+      return res.status(401).json({
+        status: 'error',
+        message: 'Invalid or expired OTP'
+      });
+    }
+
+    // Get user
+    const user = await usersDal.findByEmail(email);
+    if (!user) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'User not found'
+      });
+    }
+
+    // Delete OTP after successful verification
+    await otpsService.deleteByEmail(email);
+
+    // Generate JWT token
     const token = generateToken(user.id);
     const { password: _pwd, ...userResponse } = user;
 
@@ -101,14 +189,14 @@ const signin = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Signin error:', error);
+    console.error('Verify OTP error:', error);
     res.status(500).json({
       status: 'error',
-      message: 'Error signing in',
+      message: 'Error verifying OTP',
       error: error.message
     });
   }
-};
+}
 
 // @route   GET /api/auth/me
 // @desc    Get current user
@@ -182,6 +270,7 @@ const updateProfile = async (req, res) => {
 module.exports = {
   signup,
   signin,
+  verifyOTPAndLogin,
   getMe,
   updateProfile,
 };

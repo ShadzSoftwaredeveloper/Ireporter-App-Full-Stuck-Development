@@ -37,6 +37,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     const initializeAuth = async () => {
       const token = localStorage.getItem('authToken');
+      
+      // First, try to get user from localStorage (set during OTP login)
+      const storedUser = localStorage.getItem('user');
+      if (storedUser && token) {
+        try {
+          const user = JSON.parse(storedUser);
+          setUser(user);
+          setLoading(false);
+          return;
+        } catch (e) {
+          console.warn('Failed to parse stored user:', e);
+        }
+      }
+      
+      // Otherwise, fetch user from ME endpoint
       if (token) {
         try {
           const response = await fetch(API_ENDPOINTS.ME, {
@@ -51,10 +66,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           } else {
             // Token is invalid, remove it
             localStorage.removeItem('authToken');
+            localStorage.removeItem('user');
           }
         } catch (error) {
           console.error('Error loading user:', error);
           localStorage.removeItem('authToken');
+          localStorage.removeItem('user');
         }
       }
       setLoading(false);

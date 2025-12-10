@@ -21,14 +21,22 @@ async function updateProfile(req, res) {
 
     const existing = await usersDal.findById(req.user.id);
     if (!existing) {
-      return res.status(404).json({ error: 'User not found' });
+      return res.status(404).json({ 
+        status: 'error',
+        message: 'User not found',
+        error: 'User not found' 
+      });
     }
 
-    // If email changes, ensure unique
+    // If email changes, ensure unique (but only if email is actually being changed)
     if (email && email !== existing.email) {
       const emailOwner = await usersDal.findByEmail(email);
-      if (emailOwner) {
-        return res.status(400).json({ error: 'Email already in use' });
+      if (emailOwner && emailOwner.id !== req.user.id) {
+        return res.status(400).json({ 
+          status: 'error',
+          message: 'Email already in use',
+          error: 'Email already in use' 
+        });
       }
     }
 
@@ -38,10 +46,18 @@ async function updateProfile(req, res) {
       profilePicture: (profilePicture !== undefined ? profilePicture : profile_picture) || existing.profilePicture,
     });
 
-    res.json(updated);
+    res.json({
+      status: 'success',
+      message: 'Profile updated successfully',
+      data: { user: updated }
+    });
   } catch (err) {
     console.error('updateProfile error:', err);
-    res.status(500).json({ error: 'Failed to update profile' });
+    res.status(500).json({ 
+      status: 'error',
+      message: 'Failed to update profile',
+      error: err.message 
+    });
   }
 }
 

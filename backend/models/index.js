@@ -1,6 +1,7 @@
 const User = require('./User.model');
 const Incident = require('./Incident.model');
 const Notification = require('./Notification.model');
+const OTP = require('./OTP.model');
 
 // Define associations
 User.hasMany(Incident, { foreignKey: 'userId', as: 'incidents', onDelete: 'CASCADE' });
@@ -16,4 +17,5 @@ module.exports = {
   User,
   Incident,
   Notification,
+  OTP,
 };

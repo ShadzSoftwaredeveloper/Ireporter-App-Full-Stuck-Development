@@ -43,3 +43,12 @@ CREATE TABLE IF NOT EXISTS `Notifications` (
   INDEX `fk_notifications_incident_idx` (`incidentId`)
 ) ENGINE=InnoDB;
 
+CREATE TABLE IF NOT EXISTS `OTPs` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `email` VARCHAR(255) NOT NULL,
+  `code` VARCHAR(6) NOT NULL,
+  `expiresAt` DATETIME NOT NULL,
+  `createdAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX `idx_email` (`email`)
+) ENGINE=InnoDB;
+
