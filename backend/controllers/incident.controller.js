@@ -2,7 +2,7 @@ const incidentsDal = require('../services/incidents');
 const usersDal = require('../services/users');
 const notificationsDal = require('../services/notifications');
 const { query } = require('../database');
-const emailService = require('../utils/emailService');
+const emailService = require('../services/emailService');
 
 // @route   POST /api/incidents
 // @desc    Create new incident

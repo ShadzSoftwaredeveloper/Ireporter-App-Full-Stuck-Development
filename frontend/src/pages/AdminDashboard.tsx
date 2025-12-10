@@ -21,7 +21,7 @@ export const AdminDashboard: React.FC = () => {
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [usersLoading, setUsersLoading] = useState(false);
   const { incidents, updateIncident, deleteIncident } = useData();
-  const { notifications, markAsRead } = useNotifications();
+  const { notifications, markAsRead, addNotification } = useNotifications();
   const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
   const [newStatus, setNewStatus] = useState<IncidentStatus>('under-investigation');
   const [adminComment, setAdminComment] = useState('');
